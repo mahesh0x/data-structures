@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixed Revision Sets — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="sets" data-root=".">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Mixed Revision Sets</h1>
+<p class="deck">Cross-topic practice sets for spaced revision. Each set pulls one medium/hard problem from <em>every</em> topic folder, plus one extra Hard highlight &mdash; a ~9-problem sitting that touches the whole toolbox instead of drilling a single pattern.</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Sets</div><div class="v">3 + themed</div></div>
+  <div class="fact"><div class="k">Per sitting</div><div class="v">~9 problems</div></div>
+  <div class="fact"><div class="k">Distinct coverage</div><div class="v">27 problems</div></div>
+  <div class="fact"><div class="k">Topics touched</div><div class="v">8</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>Why mixed sets, not more drilling</h2>
+
+<p class="lead-in">Practising one topic at a time teaches you to solve problems <em>when you already know which pattern applies</em>. An interview does not tell you that. Mixed sets restore the missing skill: <strong>reading a cold problem and picking the tool.</strong></p>
+
+<figure>
+<svg viewBox="0 0 740 260" role="img" aria-label="Blocked practice versus interleaved practice and what each one trains">
+  <rect class="sv-info" x="0" y="10" width="356" height="176" rx="10"/>
+  <text class="capb t-info" x="18" y="36">Blocked practice (one folder)</text>
+  <g>
+    <rect class="sv-info" x="18" y="52" width="70" height="34" rx="4"/><text class="val" x="53"  y="75" text-anchor="middle">tree</text>
+    <rect class="sv-info" x="92" y="52" width="70" height="34" rx="4"/><text class="val" x="127" y="75" text-anchor="middle">tree</text>
+    <rect class="sv-info" x="166" y="52" width="70" height="34" rx="4"/><text class="val" x="201" y="75" text-anchor="middle">tree</text>
+    <rect class="sv-info" x="240" y="52" width="70" height="34" rx="4"/><text class="val" x="275" y="75" text-anchor="middle">tree</text>
+  </g>
+  <text class="cap" x="18" y="116">Trains: <tspan class="capb">executing</tspan> a known template.</text>
+  <text class="cap" x="18" y="140">Feels productive, and it is — for a while.</text>
+  <text class="tiny t-info" x="18" y="170">Necessary first. Just not sufficient.</text>
+
+  <rect class="sv-acc" x="384" y="10" width="356" height="176" rx="10"/>
+  <text class="capb t-acc" x="402" y="36">Interleaved practice (mixed set)</text>
+  <g>
+    <rect class="sv-good" x="402" y="52" width="70" height="34" rx="4"/><text class="val" x="437" y="75" text-anchor="middle">heap</text>
+    <rect class="sv-warn" x="476" y="52" width="70" height="34" rx="4"/><text class="val" x="511" y="75" text-anchor="middle">stack</text>
+    <rect class="sv-info" x="550" y="52" width="70" height="34" rx="4"/><text class="val" x="585" y="75" text-anchor="middle">tree</text>
+    <rect class="sv-bad" x="624" y="52" width="70" height="34" rx="4"/><text class="val" x="659" y="75" text-anchor="middle">2ptr</text>
+  </g>
+  <text class="cap" x="402" y="116">Trains: <tspan class="capb">choosing</tspan> the template.</text>
+  <text class="cap" x="402" y="140">Feels harder and slower. That&#8217;s the point —</text>
+  <text class="tiny t-acc" x="402" y="170">the retrieval effort is what makes it stick.</text>
+
+  <text class="cap" x="0" y="218">Use the topic folders to <tspan class="capb">learn</tspan> a pattern. Use these sets to <tspan class="capb">keep</tspan> it, and to find out which patterns you only think you know.</text>
+  <text class="tiny" x="0" y="246">No problem repeats across the three sets, so finishing all three covers 27 distinct medium/hard problems spanning eight topics.</text>
+</svg>
+<figcaption><b>Interleaving beats blocking for retention.</b> If a set feels noticeably harder than the folder it came from, that gap <em>is</em> the diagnostic &mdash; it&rsquo;s the pattern-selection step you hadn&rsquo;t been practising.</figcaption>
+</figure>
+
+<h2>How to use them</h2>
+
+<p>Each set is a self-checking harness (like every <code>practice.py</code> in this repo). To revise:</p>
+
+<pre class="no-hl"><code>cp practice_set_1.py practice_set_1_copy.py   # keep the stubs pristine
+python3 practice_set_1_copy.py                 # fill in the methods, watch FAIL -&gt; PASS
+</code></pre>
+
+<p>Shared tree/linked-list builders live in <code>practice_helpers.py</code>, imported by each set.</p>
+
+<div class="callout tip">
+  <span class="ct">Suggested rhythm</span>
+  <p>Work a set in one sitting without looking anything up. For each problem, <em>before</em> writing code, say out loud which pattern it is and why &mdash; that is the skill being trained. Afterwards, re-read the relevant topic page for anything you misclassified, not for anything you merely got wrong.</p>
+</div>
+
+<h2>What&rsquo;s in each set</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Topic</th><th>Set 1</th><th>Set 2</th><th>Set 3</th></tr></thead>
+<tbody>
+<tr><td><a href="ArraysHashing/arrays_hashing.html">Arrays &amp; Hashing</a></td><td>Product of Array Except Self</td><td>Longest Consecutive Sequence</td><td>Group Anagrams</td></tr>
+<tr><td><a href="TwoPointers/two_pointers.html">Two Pointers</a></td><td>3Sum · <b>Trapping Rain Water</b> <span class="tag hard">H</span></td><td>Container With Most Water</td><td>Two Sum II</td></tr>
+<tr><td><a href="SlidingWindow/sliding_window.html">Sliding Window</a></td><td>Longest Substring w/o Repeat</td><td>Char Replacement · <b>Sliding Window Max</b> <span class="tag hard">H</span></td><td>Permutation in String</td></tr>
+<tr><td><a href="Stack/stack.html">Stack</a></td><td>Daily Temperatures</td><td>Evaluate RPN</td><td>Min Stack · <b>Largest Rectangle</b> <span class="tag hard">H</span></td></tr>
+<tr><td><a href="BinarySearch/binary_search.html">Binary Search</a></td><td>Koko Eating Bananas</td><td>Search in Rotated Sorted Array</td><td>Search a 2D Matrix</td></tr>
+<tr><td><a href="Heap/heap.html">Heap</a></td><td>Kth Largest in Array</td><td>Task Scheduler</td><td>K Closest Points to Origin</td></tr>
+<tr><td><a href="LinkedList/linked_list.html">Linked List</a></td><td>Reorder List</td><td>Add Two Numbers</td><td>Remove Nth Node From End</td></tr>
+<tr><td><a href="Tree/tree.html">Tree</a></td><td>Validate BST</td><td>Kth Smallest in a BST</td><td>Lowest Common Ancestor of a BST</td></tr>
+</tbody>
+</table>
+</div>
+
+<figure>
+<svg viewBox="0 0 740 272" role="img" aria-label="Coverage map showing which topics each of the three sets touches">
+  <text class="capb" x="0" y="16">Every set touches all eight topics — one problem each, plus a Hard highlight</text>
+
+  <text class="cap" x="0" y="52">Set 1</text>
+  <g transform="translate(70,34)">
+    <rect class="sv-acc" x="0"   y="0" width="72" height="26" rx="3"/><rect class="sv-acc" x="76"  y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-acc" x="152" y="0" width="72" height="26" rx="3"/><rect class="sv-acc" x="228" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-acc" x="304" y="0" width="72" height="26" rx="3"/><rect class="sv-acc" x="380" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-acc" x="456" y="0" width="72" height="26" rx="3"/><rect class="sv-acc" x="532" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-bad" x="612" y="0" width="52" height="26" rx="3"/><text class="tiny" x="638" y="18" text-anchor="middle">+H</text>
+  </g>
+
+  <text class="cap" x="0" y="100">Set 2</text>
+  <g transform="translate(70,82)">
+    <rect class="sv-good" x="0"   y="0" width="72" height="26" rx="3"/><rect class="sv-good" x="76"  y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-good" x="152" y="0" width="72" height="26" rx="3"/><rect class="sv-good" x="228" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-good" x="304" y="0" width="72" height="26" rx="3"/><rect class="sv-good" x="380" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-good" x="456" y="0" width="72" height="26" rx="3"/><rect class="sv-good" x="532" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-bad" x="612" y="0" width="52" height="26" rx="3"/><text class="tiny" x="638" y="18" text-anchor="middle">+H</text>
+  </g>
+
+  <text class="cap" x="0" y="148">Set 3</text>
+  <g transform="translate(70,130)">
+    <rect class="sv-info" x="0"   y="0" width="72" height="26" rx="3"/><rect class="sv-info" x="76"  y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-info" x="152" y="0" width="72" height="26" rx="3"/><rect class="sv-info" x="228" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-info" x="304" y="0" width="72" height="26" rx="3"/><rect class="sv-info" x="380" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-info" x="456" y="0" width="72" height="26" rx="3"/><rect class="sv-info" x="532" y="0" width="72" height="26" rx="3"/>
+    <rect class="sv-bad" x="612" y="0" width="52" height="26" rx="3"/><text class="tiny" x="638" y="18" text-anchor="middle">+H</text>
+  </g>
+
+  <g transform="translate(70,166)">
+    <text class="tiny" x="36"  y="12" text-anchor="middle">arrays</text>
+    <text class="tiny" x="112" y="12" text-anchor="middle">2ptr</text>
+    <text class="tiny" x="188" y="12" text-anchor="middle">window</text>
+    <text class="tiny" x="264" y="12" text-anchor="middle">stack</text>
+    <text class="tiny" x="340" y="12" text-anchor="middle">bsearch</text>
+    <text class="tiny" x="416" y="12" text-anchor="middle">heap</text>
+    <text class="tiny" x="492" y="12" text-anchor="middle">linked</text>
+    <text class="tiny" x="568" y="12" text-anchor="middle">tree</text>
+  </g>
+
+  <rect class="sv-warn" x="0" y="200" width="740" height="68" rx="8"/>
+  <text class="cap" x="16" y="226"><tspan class="capb">Not yet covered by the mixed sets:</tspan> Backtracking, Graphs, and Advanced Graphs.</text>
+  <text class="cap" x="16" y="250">Drill those from their topic folders, or refresh the sets to include them.</text>
+</svg>
+<figcaption><b>Coverage at a glance.</b> The three sets are deliberately disjoint, so completing all three is 27 distinct problems rather than 27 attempts at the same nine.</figcaption>
+</figure>
+
+<h2>Interview-specific sets</h2>
+
+<p>Besides the topic-balanced sets above, themed sets drill a specific interview&rsquo;s predicted problems &mdash; grouped by <em>pattern</em>, not one-per-topic:</p>
+
+<div class="callout note">
+  <span class="ct">practice_set_coderabbit.py</span>
+  <p>The 15-problem drill from <code>practice_coderabbit.md</code> (CodeRabbit phone screen). Stack-parsing, sliding window, intervals (including Meeting Rooms I &amp; II), hashmap/heap, LRU Cache design, AST-flavoured trees, and graphs, plus 3 harder stretch follow-ups. <code>LRUCache</code> lives as its own stub class in the file &mdash; it&rsquo;s a design problem, not a <code>Solution</code> method.</p>
+</div>
+
+<h2>Where each set&rsquo;s problems are explained</h2>
+
+<div class="cards">
+  <a class="card" href="ArraysHashing/arrays_hashing.html"><div class="idx">01</div><h3>Arrays &amp; Hashing</h3><p>Trade memory for time — the lookup reflex behind Product of Array Except Self and Longest Consecutive.</p></a>
+  <a class="card" href="TwoPointers/two_pointers.html"><div class="idx">02</div><h3>Two Pointers</h3><p>Prove the move is safe — 3Sum, Container, and Trapping Rain Water.</p></a>
+  <a class="card" href="SlidingWindow/sliding_window.html"><div class="idx">03</div><h3>Sliding Window</h3><p>Name the shrink condition — variable and fixed windows, plus the monotonic deque.</p></a>
+  <a class="card" href="Stack/stack.html"><div class="idx">04</div><h3>Stack</h3><p>Most-recent-first — matching, RPN, and the monotonic stack family.</p></a>
+  <a class="card" href="BinarySearch/binary_search.html"><div class="idx">05</div><h3>Binary Search</h3><p>Halve a monotonic space — including when it isn&rsquo;t an array at all.</p></a>
+  <a class="card" href="Heap/heap.html"><div class="idx">08</div><h3>Heap</h3><p>The extreme, repeatedly, on changing data — bounded size-k heaps and two-heap medians.</p></a>
+  <a class="card" href="LinkedList/linked_list.html"><div class="idx">06</div><h3>Linked Lists</h3><p>Four maneuvers — reverse, dummy head, fast/slow, and the gap.</p></a>
+  <a class="card" href="Tree/tree.html"><div class="idx">07</div><h3>Binary Trees</h3><p>The recursive contract — what to pass down, what to bubble up.</p></a>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

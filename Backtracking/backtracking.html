@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backtracking — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="backtrack" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Backtracking</h1>
+<p class="deck">Nine problems that collapse into the same three-line template with a different &ldquo;what counts as a choice&rdquo; plugged in. Choose &rarr; explore &rarr; un-choose.</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">9</div></div>
+  <div class="fact"><div class="k">Shape</div><div class="v" style="font-size:14px">DFS on a decision tree</div></div>
+  <div class="fact"><div class="k">Typical time</div><div class="v">exponential</div></div>
+  <div class="fact"><div class="k">Space</div><div class="v">O(depth)</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>Why this section is so rewarding</h2>
+
+<p class="lead-in">Backtracking is one of the most rewarding sections in NeetCode 150 to build real pattern recognition in, because once the core move clicks, all nine problems collapse into the same template.</p>
+
+<p>There&rsquo;s no custom data structure here &mdash; you&rsquo;re just walking a decision tree over a list, string, or grid &mdash; so the entire difficulty is figuring out <strong>what a &ldquo;choice&rdquo; is at each step</strong> and <strong>when you&rsquo;ve reached a complete answer</strong>.</p>
+
+<h2>The one habit: choose &rarr; explore &rarr; un-choose</h2>
+
+<p>Every backtracking problem is a depth-first walk over a tree of decisions. At each node you:</p>
+
+<ol class="kbd-steps">
+<li><b>Choose</b> — add a candidate to your current partial solution (<code>path</code>).</li>
+<li><b>Explore</b> — recurse to make the next decision, with that choice in place.</li>
+<li><b>Un-choose</b> — remove the candidate you just added, so the next iteration of the loop starts from a clean slate.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 740 380" role="img" aria-label="The decision tree for subsets of 1,2,3 showing choose explore un-choose">
+  <text class="capb" x="0" y="16">The decision tree for Subsets of [1, 2, 3] — every node is a valid answer</text>
+
+  <g class="sv-line">
+    <line x1="370" y1="58" x2="180" y2="106"/><line x1="370" y1="58" x2="370" y2="106"/><line x1="370" y1="58" x2="600" y2="106"/>
+    <line x1="180" y1="140" x2="110" y2="190"/><line x1="180" y1="140" x2="250" y2="190"/>
+    <line x1="370" y1="140" x2="370" y2="190"/>
+    <line x1="110" y1="222" x2="110" y2="272"/>
+  </g>
+
+  <ellipse class="sv-acc" cx="370" cy="44" rx="42" ry="18"/><text class="val" x="370" y="50" text-anchor="middle">[ ]</text>
+  <ellipse class="sv-good" cx="180" cy="124" rx="42" ry="18"/><text class="val" x="180" y="130" text-anchor="middle">[1]</text>
+  <ellipse class="sv-good" cx="370" cy="124" rx="42" ry="18"/><text class="val" x="370" y="130" text-anchor="middle">[2]</text>
+  <ellipse class="sv-good" cx="600" cy="124" rx="42" ry="18"/><text class="val" x="600" y="130" text-anchor="middle">[3]</text>
+  <ellipse class="sv-info" cx="110" cy="206" rx="48" ry="18"/><text class="val" x="110" y="212" text-anchor="middle">[1,2]</text>
+  <ellipse class="sv-info" cx="250" cy="206" rx="48" ry="18"/><text class="val" x="250" y="212" text-anchor="middle">[1,3]</text>
+  <ellipse class="sv-info" cx="370" cy="206" rx="48" ry="18"/><text class="val" x="370" y="212" text-anchor="middle">[2,3]</text>
+  <ellipse class="sv-warn" cx="110" cy="288" rx="56" ry="18"/><text class="val" x="110" y="294" text-anchor="middle">[1,2,3]</text>
+
+  <text class="tiny t-acc" x="440" y="42">start: i from 0</text>
+  <text class="tiny t-good" x="646" y="122">start: i from 3</text>
+  <text class="tiny t-good" x="646" y="138">→ no children</text>
+
+  <path class="s-bad" d="M136 276 C 190 250, 200 240, 158 214"/>
+  <path class="f-bad" d="M152 210 l4,10 l6,-8 z"/>
+  <text class="cap t-bad" x="210" y="266">un-choose: <tspan class="sv-mono">path.pop()</tspan></text>
+  <text class="tiny t-bad" x="210" y="284">before trying the next sibling</text>
+
+  <rect class="panel" x="0" y="316" width="740" height="62" rx="10"/>
+  <text class="cap" x="16" y="340">Because <tspan class="sv-mono">path</tspan> is one mutable list shared by the whole recursion, going back <tspan class="capb">up</tspan> an edge must physically undo what going</text>
+  <text class="cap" x="16" y="362"><tspan class="capb">down</tspan> it did. Every <tspan class="sv-mono">append</tspan> is paired with a <tspan class="sv-mono">pop</tspan>. That symmetry is the entire technique.</text>
+</svg>
+<figcaption><b>The decision tree, drawn.</b> Notice that for Subsets you record at <em>every</em> node, not just the leaves &mdash; a partial path <em>is</em> a valid subset. Which nodes count as answers changes per problem, and that is the second question of the mental check below.</figcaption>
+</figure>
+
+<pre><code>def backtrack(start, path):
+    if is_complete(path):          # reached a valid full solution
+        result.append(path[:])     # append a COPY — path keeps mutating
+        return
+    for choice in choices(start):  # each option at this step
+        path.append(choice)        # choose
+        backtrack(next(start), path)  # explore
+        path.pop()                 # un-choose
+</code></pre>
+
+<div class="callout key">
+  <span class="ct">Burn these two into muscle memory</span>
+  <p><b>1. Append a copy</b> (<code>path[:]</code>) when you record a solution. If you append <code>path</code> itself, every stored answer points at the same list that keeps changing under you &mdash; and you end with N identical empty lists.</p>
+  <p><b>2. Every <code>append</code> is paired with a <code>pop</code>.</b> If you can write those two lines correctly, you&rsquo;ve solved most of this section.</p>
+</div>
+
+<figure>
+<svg viewBox="0 0 740 240" role="img" aria-label="Appending the list itself versus appending a copy">
+  <rect class="sv-bad" x="0" y="10" width="356" height="220" rx="10"/>
+  <text class="capb t-bad" x="18" y="36">✗ result.append(path)</text>
+  <g>
+    <rect class="cell" x="18" y="52" width="120" height="34" rx="5"/><text class="val" x="78" y="75" text-anchor="middle">result[0]</text>
+    <rect class="cell" x="18" y="94" width="120" height="34" rx="5"/><text class="val" x="78" y="117" text-anchor="middle">result[1]</text>
+    <rect class="cell" x="18" y="136" width="120" height="34" rx="5"/><text class="val" x="78" y="159" text-anchor="middle">result[2]</text>
+  </g>
+  <path class="s-bad" d="M142 69 L230 100"/><path class="s-bad" d="M142 111 L230 108"/><path class="s-bad" d="M142 153 L230 116"/>
+  <rect class="sv-bad" x="236" y="92" width="100" height="34" rx="5"/><text class="val" x="286" y="115" text-anchor="middle">path</text>
+  <text class="tiny t-bad" x="18" y="194">All three rows are the SAME list object.</text>
+  <text class="tiny t-bad" x="18" y="212">When the recursion pops it empty, all three read [].</text>
+
+  <rect class="sv-good" x="384" y="10" width="356" height="220" rx="10"/>
+  <text class="capb t-good" x="402" y="36">✓ result.append(path[:])</text>
+  <g>
+    <rect class="cell" x="402" y="52" width="120" height="34" rx="5"/><text class="val" x="462" y="75" text-anchor="middle">result[0]</text>
+    <rect class="cell" x="402" y="94" width="120" height="34" rx="5"/><text class="val" x="462" y="117" text-anchor="middle">result[1]</text>
+    <rect class="cell" x="402" y="136" width="120" height="34" rx="5"/><text class="val" x="462" y="159" text-anchor="middle">result[2]</text>
+  </g>
+  <path class="s-good" d="M526 69 L614 69"/><path class="s-good" d="M526 111 L614 111"/><path class="s-good" d="M526 153 L614 153"/>
+  <rect class="sv-good" x="620" y="52" width="100" height="34" rx="5"/><text class="val" x="670" y="75" text-anchor="middle">[1]</text>
+  <rect class="sv-good" x="620" y="94" width="100" height="34" rx="5"/><text class="val" x="670" y="117" text-anchor="middle">[1,2]</text>
+  <rect class="sv-good" x="620" y="136" width="100" height="34" rx="5"/><text class="val" x="670" y="159" text-anchor="middle">[1,3]</text>
+  <text class="tiny t-good" x="402" y="194">Each row is an independent snapshot,</text>
+  <text class="tiny t-good" x="402" y="212">frozen at the moment it was recorded.</text>
+</svg>
+<figcaption><b>The aliasing bug, visualised.</b> This is the single most common backtracking mistake, and its symptom &mdash; a result list full of identical empty lists &mdash; is distinctive enough that recognising it saves minutes of debugging.</figcaption>
+</figure>
+
+<h2>The 30-second mental check</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Question</th><th>What it determines</th><th>Answers across the section</th></tr></thead>
+<tbody>
+<tr><td><b>1. What is a single &ldquo;choice&rdquo; at this step?</b></td><td>Your <code>for</code> loop</td><td>pick/skip an element (subsets) · pick any unused element (permutations) · pick a candidate ≥ the current index (combinations) · pick a letter for a digit (phone) · pick a direction (grid)</td></tr>
+<tr><td><b>2. When is <code>path</code> a complete solution?</b></td><td>Your base case / record condition</td><td>every node (subsets) · at a target sum (combination sum) · when the string is fully consumed (partitioning) · at full length (permutations)</td></tr>
+<tr><td><b>3. How do I avoid revisiting / duplicating?</b></td><td>Where 90% of the bugs live</td><td>a <code>start</code> index · a <code>used[]</code> array · skipping equal siblings on sorted input · marking a cell visited then restoring it</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Technique patterns &mdash; know these cold</h2>
+
+<h3>1. Pick / skip via a <code>start</code> index</h3>
+
+<p>For subsets and combinations, pass a <code>start</code> so each recursion only considers elements from <code>start</code> onward. This is what stops <code>[1,2]</code> and <code>[2,1]</code> from both appearing when you only want one.</p>
+
+<pre><code>def backtrack(start, path):
+    result.append(path[:])              # subsets: record at every node
+    for i in range(start, len(nums)):
+        path.append(nums[i])
+        backtrack(i + 1, path)          # i+1 → never look back
+        path.pop()
+</code></pre>
+
+<div class="callout note">
+  <span class="ct">The one-character difference that changes the problem</span>
+  <p><code>backtrack(i + 1, ...)</code> → each element used <b>at most once</b> (Subsets, Combination Sum II).<br>
+  <code>backtrack(i, ...)</code> → the same element may be <b>reused</b> (Combination Sum).<br>
+  <code>backtrack(0, ...)</code> → order matters and elements repeat &mdash; usually not what you want.</p>
+</div>
+
+<h3>2. Use a <code>used[]</code> array for permutations</h3>
+
+<p>Order matters, so you <em>can</em> look backward; you just can&rsquo;t reuse an element already in the current path.</p>
+
+<figure>
+<svg viewBox="0 0 740 260" role="img" aria-label="Start index versus used array: two different ways to constrain choices">
+  <rect class="sv-info" x="0" y="10" width="356" height="240" rx="10"/>
+  <text class="capb t-info" x="18" y="36">start index — combinations</text>
+  <text class="cap" x="18" y="58">[1, 2, 3], currently holding [2]</text>
+  <g>
+    <rect class="cell" x="18"  y="76" width="100" height="38" rx="5" opacity=".35"/><text class="val" x="68"  y="101" text-anchor="middle">1</text>
+    <rect class="sv-acc" x="126" y="76" width="100" height="38" rx="5"/><text class="val" x="176" y="101" text-anchor="middle">2</text>
+    <rect class="sv-good" x="234" y="76" width="100" height="38" rx="5"/><text class="val" x="284" y="101" text-anchor="middle">3</text>
+  </g>
+  <text class="tiny" x="68" y="132" text-anchor="middle">unreachable</text>
+  <text class="tiny t-good" x="284" y="132" text-anchor="middle">the only choice</text>
+  <text class="cap" x="18" y="170">The window only ever moves <tspan class="capb">right</tspan>, so each</text>
+  <text class="cap" x="18" y="190">combination is generated in exactly one order.</text>
+  <text class="tiny" x="18" y="220">2ⁿ subsets, one visit each — no duplicates possible.</text>
+
+  <rect class="sv-warn" x="384" y="10" width="356" height="240" rx="10"/>
+  <text class="capb t-warn" x="402" y="36">used[] array — permutations</text>
+  <text class="cap" x="402" y="58">[1, 2, 3], currently holding [2]</text>
+  <g>
+    <rect class="sv-good" x="402" y="76" width="100" height="38" rx="5"/><text class="val" x="452" y="101" text-anchor="middle">1</text>
+    <rect class="sv-bad" x="510" y="76" width="100" height="38" rx="5"/><text class="val" x="560" y="101" text-anchor="middle">2</text>
+    <rect class="sv-good" x="618" y="76" width="100" height="38" rx="5"/><text class="val" x="668" y="101" text-anchor="middle">3</text>
+  </g>
+  <text class="tiny t-good" x="452" y="132" text-anchor="middle">available</text>
+  <text class="tiny t-bad" x="560" y="132" text-anchor="middle">used[1] = True</text>
+  <text class="tiny t-good" x="668" y="132" text-anchor="middle">available</text>
+  <text class="cap" x="402" y="170">Looking backward is <tspan class="capb">required</tspan> — [2,1,3] and</text>
+  <text class="cap" x="402" y="190">[1,2,3] are different answers.</text>
+  <text class="tiny" x="402" y="220">n! permutations; the flag is set and cleared with push/pop.</text>
+</svg>
+<figcaption><b>Two constraint mechanisms.</b> Choosing between them is question 3 of the mental check, and it follows directly from whether order matters. A <code>start</code> index says &ldquo;only forward&rdquo;; a <code>used[]</code> array says &ldquo;anywhere, but not twice.&rdquo;</figcaption>
+</figure>
+
+<pre><code>def backtrack(path, used):
+    if len(path) == len(nums):
+        result.append(path[:]); return
+    for i in range(len(nums)):
+        if used[i]: continue
+        used[i] = True;  path.append(nums[i])
+        backtrack(path, used)
+        path.pop();      used[i] = False
+</code></pre>
+
+<h3>3. Skip duplicate siblings &mdash; the &ldquo;II&rdquo; trick</h3>
+
+<p>Sort the input first, then within a single <code>for</code> loop skip any element equal to the previous one, so you don&rsquo;t start two branches with the same value at the same depth.</p>
+
+<figure>
+<svg viewBox="0 0 740 302" role="img" aria-label="Skipping equal siblings at the same depth prevents duplicate subsets">
+  <text class="capb" x="0" y="16">Subsets II with nums = [1, 2, 2] — sorted first</text>
+
+  <g class="sv-line">
+    <line x1="250" y1="52" x2="110" y2="100"/><line x1="250" y1="52" x2="250" y2="100"/><line x1="250" y1="52" x2="390" y2="100"/>
+  </g>
+  <ellipse class="sv-acc" cx="250" cy="40" rx="40" ry="16"/><text class="val" x="250" y="45" text-anchor="middle">[ ]</text>
+  <ellipse class="sv-good" cx="110" cy="116" rx="40" ry="16"/><text class="val" x="110" y="121" text-anchor="middle">[1]</text>
+  <ellipse class="sv-good" cx="250" cy="116" rx="40" ry="16"/><text class="val" x="250" y="121" text-anchor="middle">[2]</text>
+  <ellipse class="sv-bad" cx="390" cy="116" rx="40" ry="16" opacity=".45"/><text class="val" x="390" y="121" text-anchor="middle">[2]</text>
+
+  <text class="cap t-bad" x="446" y="112">i &gt; start and nums[i] == nums[i−1]</text>
+  <text class="capb t-bad" x="446" y="132">→ skip this whole branch</text>
+  <text class="tiny" x="446" y="152">it would regenerate everything the</text>
+  <text class="tiny" x="446" y="168">first [2] branch already produces</text>
+
+  <rect class="panel" x="0" y="192" width="740" height="110" rx="10"/>
+  <text class="capb" x="16" y="216">Why <tspan class="sv-mono">i &gt; start</tspan> and not <tspan class="sv-mono">i &gt; 0</tspan></text>
+  <text class="cap" x="16" y="240">The rule must forbid two <tspan class="capb">siblings</tspan> with the same value, not two equal values on the same <tspan class="capb">path</tspan>.</text>
+  <text class="cap" x="16" y="262"><tspan class="sv-mono">i &gt; start</tspan> means &#8220;not the first choice at this level&#8221; — so <tspan class="sv-mono">[2,2]</tspan> is still legally</text>
+  <text class="cap" x="16" y="286">produced by going deeper, while the duplicate top-level branch is cut.</text>
+</svg>
+<figcaption><b>Duplicate-sibling skipping.</b> Sorting is what puts equal values next to each other so a single <code>nums[i] == nums[i-1]</code> comparison suffices. Getting <code>i &gt; start</code> wrong (writing <code>i &gt; 0</code>) silently drops valid answers like <code>[2,2]</code>.</figcaption>
+</figure>
+
+<pre><code>nums.sort()
+for i in range(start, len(nums)):
+    if i &gt; start and nums[i] == nums[i - 1]:
+        continue                        # same value already tried at this depth
+    path.append(nums[i])
+    backtrack(i + 1, path)
+    path.pop()
+</code></pre>
+
+<h3>4. Grid DFS with in-place marking</h3>
+
+<p>For Word Search, a &ldquo;choice&rdquo; is a direction; mark the current cell (overwrite it or use a visited set) before recursing into neighbours, then restore it on the way out &mdash; the un-choose step applied to a 2-D board.</p>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Word search marking a cell before recursing and restoring it afterwards">
+  <text class="capb" x="0" y="16">Word Search — looking for "SEE", currently standing on S at (1,3)</text>
+
+  <g>
+    <rect class="cell" x="0"   y="34" width="64" height="52" rx="4"/><text class="val" x="32"  y="66" text-anchor="middle">A</text>
+    <rect class="cell" x="68"  y="34" width="64" height="52" rx="4"/><text class="val" x="100" y="66" text-anchor="middle">B</text>
+    <rect class="cell" x="136" y="34" width="64" height="52" rx="4"/><text class="val" x="168" y="66" text-anchor="middle">C</text>
+    <rect class="cell" x="204" y="34" width="64" height="52" rx="4"/><text class="val" x="236" y="66" text-anchor="middle">E</text>
+
+    <rect class="cell" x="0"   y="90" width="64" height="52" rx="4"/><text class="val" x="32"  y="122" text-anchor="middle">S</text>
+    <rect class="cell" x="68"  y="90" width="64" height="52" rx="4"/><text class="val" x="100" y="122" text-anchor="middle">F</text>
+    <rect class="cell" x="136" y="90" width="64" height="52" rx="4"/><text class="val" x="168" y="122" text-anchor="middle">C</text>
+    <rect class="sv-acc" x="204" y="90" width="64" height="52" rx="4"/><text class="val" x="236" y="122" text-anchor="middle">#</text>
+
+    <rect class="cell" x="0"   y="146" width="64" height="52" rx="4"/><text class="val" x="32"  y="178" text-anchor="middle">A</text>
+    <rect class="cell" x="68"  y="146" width="64" height="52" rx="4"/><text class="val" x="100" y="178" text-anchor="middle">D</text>
+    <rect class="cell" x="136" y="146" width="64" height="52" rx="4"/><text class="val" x="168" y="178" text-anchor="middle">E</text>
+    <rect class="sv-good" x="204" y="146" width="64" height="52" rx="4"/><text class="val" x="236" y="178" text-anchor="middle">E</text>
+  </g>
+  <text class="tiny t-acc" x="236" y="86" text-anchor="middle">temporarily overwritten</text>
+  <text class="tiny t-good" x="236" y="216" text-anchor="middle">next candidate</text>
+
+  <rect class="panel" x="300" y="30" width="440" height="176" rx="10"/>
+  <text class="capb" x="316" y="54">The grid version of choose / un-choose</text>
+  <text class="cap sv-mono" x="316" y="84">tmp = board[r][c]</text>
+  <text class="cap sv-mono t-acc" x="316" y="106">board[r][c] = "#"          # CHOOSE</text>
+  <text class="cap sv-mono" x="316" y="128">found = any(dfs(r+dr, c+dc) …)  # EXPLORE</text>
+  <text class="cap sv-mono t-bad" x="316" y="150">board[r][c] = tmp          # UN-CHOOSE</text>
+  <text class="cap" x="316" y="180">Marking prevents the path from walking back over</text>
+  <text class="cap" x="316" y="198">itself; restoring lets a <tspan class="capb">different</tspan> path use the cell.</text>
+
+  <rect class="panel" x="0" y="238" width="740" height="60" rx="10"/>
+  <text class="cap" x="16" y="262"><tspan class="capb t-bad">Forget the restore</tspan> and the board is permanently damaged: later start positions find cells missing, and the</text>
+  <text class="cap" x="16" y="284">function returns False for words that are genuinely present. Symptom: correct on the first test, wrong afterwards.</text>
+</svg>
+<figcaption><b>In-place marking.</b> Overwriting with a sentinel avoids allocating a visited set per call. If mutating the input is disallowed, a <code>visited</code> set works identically &mdash; <code>add</code> before recursing, <code>discard</code> after.</figcaption>
+</figure>
+
+<h2>N-Queens &mdash; the capstone</h2>
+
+<p>Same loop, three pruning conditions. The insight that makes it fast is representing the constraints as sets you can test in O(1).</p>
+
+<figure>
+<svg viewBox="0 0 740 340" role="img" aria-label="N-Queens diagonal identities that make constraint checks constant time">
+  <text class="capb" x="0" y="16">Two identities make every conflict check O(1)</text>
+
+  <!-- board -->
+  <g>
+    <rect class="cell" x="0"   y="34" width="56" height="56"/><rect class="cell" x="58"  y="34" width="56" height="56"/><rect class="cell" x="116" y="34" width="56" height="56"/><rect class="cell" x="174" y="34" width="56" height="56"/>
+    <rect class="cell" x="0"   y="92" width="56" height="56"/><rect class="sv-acc" x="58" y="92" width="56" height="56"/><rect class="cell" x="116" y="92" width="56" height="56"/><rect class="cell" x="174" y="92" width="56" height="56"/>
+    <rect class="cell" x="0"   y="150" width="56" height="56"/><rect class="cell" x="58"  y="150" width="56" height="56"/><rect class="cell" x="116" y="150" width="56" height="56"/><rect class="cell" x="174" y="150" width="56" height="56"/>
+    <rect class="cell" x="0"   y="208" width="56" height="56"/><rect class="cell" x="58"  y="208" width="56" height="56"/><rect class="cell" x="116" y="208" width="56" height="56"/><rect class="cell" x="174" y="208" width="56" height="56"/>
+  </g>
+  <text class="val" x="86" y="126" text-anchor="middle">♛</text>
+  <text class="tiny" x="86" y="286" text-anchor="middle">queen at row 1, col 1</text>
+
+  <!-- diagonals -->
+  <path class="s-good" d="M30 64 L200 234"/>
+  <text class="tiny t-good" x="216" y="240">↘ diagonal: r − c is constant (= 0)</text>
+  <path class="s-warn" d="M144 64 L30 178"/>
+  <text class="tiny t-warn" x="240" y="70">↙ anti-diagonal: r + c is constant (= 2)</text>
+
+  <rect class="panel" x="300" y="100" width="440" height="150" rx="10"/>
+  <text class="capb" x="316" y="124">Three sets, all O(1)</text>
+  <text class="cap sv-mono" x="316" y="152">cols       — column c is taken</text>
+  <text class="cap sv-mono t-good" x="316" y="176">diagonals  — (r − c) is taken</text>
+  <text class="cap sv-mono t-warn" x="316" y="200">anti_diags — (r + c) is taken</text>
+  <text class="cap" x="316" y="230">Place one queen per row, so rows never need checking.</text>
+
+  <text class="cap" x="0" y="308"><tspan class="capb">Pruning is the point:</tspan> checking legality <tspan class="capb">before</tspan> recursing cuts entire subtrees. Brute force</text>
+  <text class="cap" x="0" y="330">is 4⁴ = 256 placements; with pruning, N-Queens for n = 8 explores a few thousand nodes, not 16 million.</text>
+</svg>
+<figcaption><b>N-Queens.</b> The two diagonal identities (<code>r-c</code> and <code>r+c</code>) are the whole trick &mdash; every cell on a diagonal shares the same value, so a set membership test replaces a scan. Add and discard all three alongside the choose/un-choose pair.</figcaption>
+</figure>
+
+<pre><code>def solveNQueens(n):
+    cols, diags, anti = set(), set(), set()
+    board, res = [], []
+
+    def backtrack(r):
+        if r == n:
+            res.append(["".join(row) for row in board]); return
+        for c in range(n):
+            if c in cols or (r - c) in diags or (r + c) in anti:
+                continue                                  # prune
+            cols.add(c); diags.add(r - c); anti.add(r + c)      # choose
+            board.append("." * c + "Q" + "." * (n - c - 1))
+            backtrack(r + 1)                                    # explore
+            board.pop()
+            cols.remove(c); diags.remove(r - c); anti.remove(r + c)  # un-choose
+    backtrack(0)
+    return res
+</code></pre>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Subset / combination enumeration</b></td><td>Pick-skip with <code>start</code>. Record at (nearly) every node; the <code>start</code> index prevents reordered duplicates. Combination Sum&rsquo;s twist: an element can be reused, so recurse with <code>i</code> instead of <code>i + 1</code>.</td><td>Subsets <span class="tag med">med</span>, Combination Sum <span class="tag med">med</span></td></tr>
+<tr><td><b>2. Permutation enumeration</b></td><td>Length is the base case; a <code>used</code> array (not a <code>start</code> index) governs what&rsquo;s still available.</td><td>Permutations <span class="tag med">med</span></td></tr>
+<tr><td><b>3. The &ldquo;II&rdquo; duplicate variants</b></td><td>Same skeleton, but sort the input and skip equal siblings at the same depth so you don&rsquo;t emit the same set twice.</td><td>Subsets II <span class="tag med">med</span>, Combination Sum II <span class="tag med">med</span></td></tr>
+<tr><td><b>4. String partitioning / building</b></td><td>A &ldquo;choice&rdquo; is where to cut the string, or which letter maps to the current digit. Base case is &ldquo;consumed the whole input.&rdquo;</td><td>Palindrome Partitioning <span class="tag med">med</span>, Letter Combinations of a Phone Number <span class="tag med">med</span></td></tr>
+<tr><td><b>5. Grid / constraint search</b></td><td>The choice is a board position or a queen placement; mark state, recurse, restore. N-Queens adds constraint checks to prune illegal branches early.</td><td>Word Search <span class="tag med">med</span>, N-Queens <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Subsets</b><span class="why">Learn the pick/skip + <code>start</code> template. Record at every node.</span></li>
+<li><b>Combination Sum</b><span class="why">Same shape, but reuse allowed → recurse with <code>i</code>. Prune when the remaining target goes negative.</span></li>
+<li><b>Permutations</b><span class="why">Switch to a <code>used[]</code> array; order matters, so backward looks are legal.</span></li>
+<li><b>Subsets II</b><span class="why">Add the sort + skip-duplicate-siblings move. Watch <code>i &gt; start</code>, not <code>i &gt; 0</code>.</span></li>
+<li><b>Combination Sum II</b><span class="why">Combine &ldquo;II&rdquo; dedup with the target-sum stop, and each element used at most once.</span></li>
+<li><b>Letter Combinations of a Phone Number</b><span class="why">Choices come from a digit→letters map. The base case is index == len(digits).</span></li>
+<li><b>Palindrome Partitioning</b><span class="why">Choice = where to cut; prune with an is-palindrome check before recursing.</span></li>
+<li><b>Word Search</b><span class="why">Backtracking on a 2-D grid with in-place marking — and restoring.</span></li>
+<li class="boss"><b>N-Queens</b><span class="why">Constraint pruning with column + both diagonal sets. The capstone.</span></li>
+</ol>
+
+<p>By the time you hit N-Queens, the &ldquo;choose &rarr; recurse &rarr; un-choose&rdquo; loop and the &ldquo;append a copy at the base case&rdquo; move will feel automatic; N-Queens is just that same loop wearing three pruning conditions.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Constraint mechanism</th></tr></thead>
+<tbody>
+<tr><td>Subsets</td><td>O(n · 2ⁿ)</td><td>O(n) depth</td><td><code>start</code> index</td></tr>
+<tr><td>Combination Sum</td><td>O(n^(target/min))</td><td>O(target/min)</td><td><code>start</code>, recurse with <code>i</code></td></tr>
+<tr><td>Permutations</td><td>O(n · n!)</td><td>O(n)</td><td><code>used[]</code></td></tr>
+<tr><td>Subsets II</td><td>O(n · 2ⁿ)</td><td>O(n)</td><td>sort + sibling skip</td></tr>
+<tr><td>Combination Sum II</td><td>O(2ⁿ)</td><td>O(n)</td><td>sort + sibling skip + <code>i+1</code></td></tr>
+<tr><td>Letter Combinations</td><td>O(4ⁿ · n)</td><td>O(n)</td><td>index into digits</td></tr>
+<tr><td>Palindrome Partitioning</td><td>O(n · 2ⁿ)</td><td>O(n)</td><td>cut index + palindrome prune</td></tr>
+<tr><td>Word Search</td><td>O(m·n·4^L)</td><td>O(L)</td><td>in-place mark / restore</td></tr>
+<tr><td>N-Queens</td><td>O(n!)</td><td>O(n)</td><td>three constraint sets</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — appending the path itself</span>
+  <p><code>result.append(path)</code> stores a reference. Every entry ends up identical (usually empty). Always <code>path[:]</code> or <code>list(path)</code>.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — a missing <code>pop</code></span>
+  <p>An <code>append</code> without its matching <code>pop</code> leaks state into sibling branches. If your answers keep growing longer and longer, this is why.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — <code>i &gt; 0</code> instead of <code>i &gt; start</code></span>
+  <p>The dedup guard is about siblings at one level, not about the path. Using <code>i &gt; 0</code> silently drops legitimate answers containing repeated values.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — forgetting to restore grid state</span>
+  <p>Word Search works on the first call and fails afterwards. Restore the cell on the way out, on <em>every</em> return path.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 5 — pruning after recursing instead of before</span>
+  <p>Checking legality <em>inside</em> the recursive call still explores the node. Prune in the loop, before <code>append</code>, so the whole subtree is never entered.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Write these two comments first</span>
+  <p><code># choice at each step: ...</code><br><code># record when: ...</code></p>
+  <p>Those two sentences pin down your <code>for</code> loop and your base case, which is the entire skeleton. Fill in the pruning last.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

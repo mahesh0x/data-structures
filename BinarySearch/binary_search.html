@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binary Search — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="bsearch" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Binary Search</h1>
+<p class="deck">Three lines of mechanics, and a deceptively hard section &mdash; because the real skill isn&rsquo;t searching a sorted array. It&rsquo;s recognising binary search when the array <em>isn&rsquo;t</em> what you&rsquo;re searching.</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">7</div></div>
+  <div class="fact"><div class="k">Time</div><div class="v">O(log n)</div></div>
+  <div class="fact"><div class="k">Space</div><div class="v">O(1)</div></div>
+  <div class="fact"><div class="k">Precondition</div><div class="v" style="font-size:14px">monotonic predicate</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>Why this section is harder than it looks</h2>
+
+<p class="lead-in">Binary search is the &ldquo;throw away half the possibilities every step&rdquo; pattern, and its whole value is turning O(n) into O(log n). The mechanics are trivial &mdash; a <code>left</code>, a <code>right</code>, a <code>mid</code>, and a decision to go one way or the other.</p>
+
+<p>But this section is deceptively hard, because binary-searching a sorted array is <em>problem one</em>. The rest of the section is about recognising binary search when the input is a rotated array, a 2D grid, or an abstract range of <em>answers</em> like &ldquo;eating speeds.&rdquo; The pattern is the same three lines every time; the art is figuring out <strong>what you&rsquo;re halving</strong> and <strong>which direction &ldquo;the answer must be over there&rdquo; points.</strong></p>
+
+<figure>
+<svg viewBox="0 0 740 250" role="img" aria-label="Each probe eliminates half the remaining search space">
+  <text class="capb" x="0" y="16">Halving a space of 1,000,000 candidates</text>
+
+  <g>
+    <rect class="sv-acc" x="0" y="34" width="630" height="26" rx="4"/>
+    <text class="tiny" x="642" y="52">1,000,000</text>
+  </g>
+  <g>
+    <rect class="sv-acc" x="0" y="66" width="315" height="26" rx="4"/>
+    <rect class="cell" x="317" y="66" width="313" height="26" rx="4" opacity=".3"/>
+    <text class="tiny" x="642" y="84">500,000</text>
+  </g>
+  <g>
+    <rect class="sv-acc" x="0" y="98" width="158" height="26" rx="4"/>
+    <rect class="cell" x="160" y="98" width="470" height="26" rx="4" opacity=".3"/>
+    <text class="tiny" x="642" y="116">250,000</text>
+  </g>
+  <g>
+    <rect class="sv-acc" x="0" y="130" width="79" height="26" rx="4"/>
+    <rect class="cell" x="81" y="130" width="549" height="26" rx="4" opacity=".3"/>
+    <text class="tiny" x="642" y="148">125,000</text>
+  </g>
+  <text class="cap" x="0" y="180">…19 more probes…</text>
+  <g>
+    <rect class="sv-good" x="0" y="192" width="8" height="26" rx="3"/>
+    <text class="tiny" x="20" y="210">1 — done in 20 steps total</text>
+  </g>
+  <text class="cap" x="0" y="242">log&#8322;(1,000,000) &#8776; 20. A linear scan would need up to a million. <tspan class="capb">Every doubling of n costs one extra step.</tspan></text>
+</svg>
+<figcaption><b>Why log time feels like magic.</b> Doubling the input adds a single probe. This is also why interviewers reach for it: if the input is sorted and your solution is O(n), they will ask whether you can do better, and there is exactly one intended answer.</figcaption>
+</figure>
+
+<h2>The one idea: can I rule out half with a single check?</h2>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;If I probe the middle of my range and look at it, can I <em>prove</em> the answer lies entirely in the left half <em>or</em> entirely in the right half?&rdquo;</p>
+</div>
+
+<p>If you can make that proof, you can binary search &mdash; even if the input isn&rsquo;t a plainly sorted array. That&rsquo;s the leap this section is built to teach.</p>
+
+<ul>
+<li>On a <b>rotated array</b>, the trick is that <em>one side of <code>mid</code> is always sorted</em>, so you can test whether the target falls in that sorted side and eliminate the other.</li>
+<li>On <b>Koko Eating Bananas</b>, you&rsquo;re not searching the array at all &mdash; you&rsquo;re binary-searching over the <em>answer</em> (possible eating speeds 1&hellip;max), and the &ldquo;can she finish in time at this speed?&rdquo; check is monotonic (faster is always at-least-as-good).</li>
+</ul>
+
+<div class="callout note">
+  <span class="ct">The general statement</span>
+  <p>When the space of possible answers is <strong>monotonic</strong> &mdash; some threshold splits &ldquo;no&rdquo; from &ldquo;yes&rdquo; and never flips back &mdash; you can binary search it, with no array in sight.</p>
+</div>
+
+<figure>
+<svg viewBox="0 0 740 260" role="img" aria-label="A monotonic predicate flips from no to yes exactly once, and binary search finds the boundary">
+  <text class="capb" x="0" y="16">The predicate that makes binary search legal</text>
+
+  <text class="cap" x="0" y="48">candidate answers, in order &#8594;</text>
+  <g>
+    <rect class="sv-bad" x="0"   y="60" width="70" height="44" rx="5"/><text class="val" x="35"  y="88" text-anchor="middle">no</text>
+    <rect class="sv-bad" x="74"  y="60" width="70" height="44" rx="5"/><text class="val" x="109" y="88" text-anchor="middle">no</text>
+    <rect class="sv-bad" x="148" y="60" width="70" height="44" rx="5"/><text class="val" x="183" y="88" text-anchor="middle">no</text>
+    <rect class="sv-good" x="222" y="60" width="70" height="44" rx="5"/><text class="val" x="257" y="88" text-anchor="middle">YES</text>
+    <rect class="sv-good" x="296" y="60" width="70" height="44" rx="5"/><text class="val" x="331" y="88" text-anchor="middle">yes</text>
+    <rect class="sv-good" x="370" y="60" width="70" height="44" rx="5"/><text class="val" x="405" y="88" text-anchor="middle">yes</text>
+    <rect class="sv-good" x="444" y="60" width="70" height="44" rx="5"/><text class="val" x="479" y="88" text-anchor="middle">yes</text>
+    <rect class="sv-good" x="518" y="60" width="70" height="44" rx="5"/><text class="val" x="553" y="88" text-anchor="middle">yes</text>
+  </g>
+  <line class="s-acc" x1="220" y1="52" x2="220" y2="118"/>
+  <text class="cap t-acc" x="257" y="134">the boundary — usually what you must return</text>
+
+  <text class="cap" x="0" y="174">Koko: <tspan class="sv-mono">can_finish(speed)</tspan> — once a speed works, every faster speed also works. Return the <tspan class="capb">smallest yes</tspan>.</text>
+  <text class="cap" x="0" y="198">Plain search: <tspan class="sv-mono">nums[i] &gt;= target</tspan> — once true, stays true in a sorted array.</text>
+
+  <rect class="panel" x="0" y="212" width="740" height="46" rx="10"/>
+  <text class="cap" x="16" y="240"><tspan class="capb t-bad">The disqualifier:</tspan> if the pattern reads <tspan class="sv-mono">no yes no yes</tspan>, a probe tells you nothing about the other half.</text>
+</svg>
+<figcaption><b>Monotonicity is the actual precondition</b> &mdash; not sortedness. Sortedness is just the most common way a problem happens to be monotonic. Learning to look for the predicate instead of the sorted array is what this section is teaching.</figcaption>
+</figure>
+
+<h2>The core template and the boundary trap</h2>
+
+<pre><code>left, right = 0, len(nums) - 1        # inclusive bounds
+while left &lt;= right:                  # &lt;= because both ends are valid candidates
+    mid = (left + right) // 2
+    if nums[mid] == target:
+        return mid
+    elif nums[mid] &lt; target:
+        left = mid + 1                # answer is strictly right of mid
+    else:
+        right = mid - 1               # answer is strictly left of mid
+return -1
+</code></pre>
+
+<p>Two things cause 90% of binary-search bugs, so decide them <em>before</em> you type:</p>
+
+<ol class="kbd-steps">
+<li><b>Are your bounds inclusive or exclusive?</b> Pick <code>left &lt;= right</code> with <code>right = len-1</code> (inclusive) and stick to it. Mixing conventions is how you get off-by-ones and infinite loops.</li>
+<li><b>Does <code>mid</code> move to <code>mid+1</code>/<code>mid-1</code>, or stay at <code>mid</code>?</b> Whenever a branch keeps <code>mid</code> as a <em>candidate</em> (common in &ldquo;find the minimum / find the boundary&rdquo; problems), make sure the range still shrinks each iteration, or you loop forever.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 740 290" role="img" aria-label="The two loop conventions side by side, and the infinite loop failure">
+  <rect class="sv-good" x="0" y="10" width="356" height="150" rx="10"/>
+  <text class="capb t-good" x="18" y="36">Convention A — find an exact value</text>
+  <text class="cap sv-mono" x="18" y="62">left, right = 0, n - 1</text>
+  <text class="cap sv-mono" x="18" y="84">while left &lt;= right:</text>
+  <text class="cap sv-mono" x="34" y="106">left = mid + 1  /  right = mid - 1</text>
+  <text class="cap" x="18" y="134">Both branches exclude <tspan class="sv-mono">mid</tspan>, so the range always</text>
+  <text class="cap" x="18" y="152">shrinks. Ends with <tspan class="sv-mono">left &gt; right</tspan> = not found.</text>
+
+  <rect class="sv-info" x="384" y="10" width="356" height="150" rx="10"/>
+  <text class="capb t-info" x="402" y="36">Convention B — find a boundary</text>
+  <text class="cap sv-mono" x="402" y="62">left, right = lo, hi</text>
+  <text class="cap sv-mono" x="402" y="84">while left &lt; right:</text>
+  <text class="cap sv-mono" x="418" y="106">right = mid   /  left = mid + 1</text>
+  <text class="cap" x="402" y="134">One branch <tspan class="capb">keeps</tspan> mid (it might be the answer).</text>
+  <text class="cap" x="402" y="152">Ends with <tspan class="sv-mono">left == right</tspan> = the boundary.</text>
+
+  <rect class="sv-bad" x="0" y="176" width="740" height="106" rx="10"/>
+  <text class="capb t-bad" x="18" y="202">The infinite loop, and why it happens</text>
+  <text class="cap" x="18" y="226">In convention B, <tspan class="sv-mono">mid = (left + right) // 2</tspan> rounds <tspan class="capb">down</tspan>. If <tspan class="sv-mono">left = 3, right = 4</tspan> then <tspan class="sv-mono">mid = 3</tspan>.</text>
+  <text class="cap" x="18" y="248">A branch that sets <tspan class="sv-mono">left = mid</tspan> leaves the range unchanged — forever.</text>
+  <text class="cap" x="18" y="272"><tspan class="capb">Rule:</tspan> if a branch assigns <tspan class="sv-mono">left = mid</tspan>, you must round mid <tspan class="capb">up</tspan>: <tspan class="sv-mono">mid = (left + right + 1) // 2</tspan>.</text>
+</svg>
+<figcaption><b>Two conventions, and one hazard.</b> Pick a convention per problem and write out on paper what happens when the range shrinks to two elements. That single check catches every off-by-one and every infinite loop before you run anything.</figcaption>
+</figure>
+
+<h2>The pattern families</h2>
+
+<h3>1. Classic search on a sorted array</h3>
+
+<p>Binary Search, and Search a 2D Matrix &mdash; where every row is sorted and each row&rsquo;s first element exceeds the previous row&rsquo;s last. That property means the grid <em>is</em> one flat sorted array; you just need index arithmetic to pretend.</p>
+
+<figure>
+<svg viewBox="0 0 740 260" role="img" aria-label="A row-sorted matrix flattened into one sorted array by index arithmetic">
+  <text class="capb" x="0" y="16">3 × 4 matrix, fully sorted when read row by row</text>
+
+  <g>
+    <rect class="cell" x="0"   y="34" width="70" height="40" rx="4"/><text class="val" x="35"  y="60" text-anchor="middle">1</text>
+    <rect class="cell" x="74"  y="34" width="70" height="40" rx="4"/><text class="val" x="109" y="60" text-anchor="middle">3</text>
+    <rect class="cell" x="148" y="34" width="70" height="40" rx="4"/><text class="val" x="183" y="60" text-anchor="middle">5</text>
+    <rect class="cell" x="222" y="34" width="70" height="40" rx="4"/><text class="val" x="257" y="60" text-anchor="middle">7</text>
+
+    <rect class="cell" x="0"   y="78" width="70" height="40" rx="4"/><text class="val" x="35"  y="104" text-anchor="middle">10</text>
+    <rect class="cell" x="74"  y="78" width="70" height="40" rx="4"/><text class="val" x="109" y="104" text-anchor="middle">11</text>
+    <rect class="sv-acc" x="148" y="78" width="70" height="40" rx="4"/><text class="val" x="183" y="104" text-anchor="middle">16</text>
+    <rect class="cell" x="222" y="78" width="70" height="40" rx="4"/><text class="val" x="257" y="104" text-anchor="middle">20</text>
+
+    <rect class="cell" x="0"   y="122" width="70" height="40" rx="4"/><text class="val" x="35"  y="148" text-anchor="middle">23</text>
+    <rect class="cell" x="74"  y="122" width="70" height="40" rx="4"/><text class="val" x="109" y="148" text-anchor="middle">30</text>
+    <rect class="cell" x="148" y="122" width="70" height="40" rx="4"/><text class="val" x="183" y="148" text-anchor="middle">34</text>
+    <rect class="cell" x="222" y="122" width="70" height="40" rx="4"/><text class="val" x="257" y="148" text-anchor="middle">60</text>
+  </g>
+  <text class="tiny t-acc" x="183" y="132" text-anchor="middle">flat index 6</text>
+
+  <path class="s-acc" d="M300 98 L360 98"/><path class="f-acc" d="M368 98 l-9,-5 l0,10 z"/>
+
+  <text class="capb" x="390" y="46">Treat it as one array of length 12</text>
+  <text class="cap sv-mono" x="390" y="76">left, right = 0, rows*cols - 1</text>
+  <text class="cap sv-mono" x="390" y="98">mid = (left + right) // 2</text>
+  <text class="cap sv-mono" x="390" y="120">r, c = divmod(mid, cols)</text>
+  <text class="cap sv-mono" x="390" y="142">value = matrix[r][c]</text>
+  <text class="cap" x="390" y="172">flat 6 &#8594; <tspan class="sv-mono">divmod(6, 4)</tspan> = (1, 2) &#8594; 16 &#10003;</text>
+
+  <rect class="panel" x="0" y="192" width="740" height="64" rx="10"/>
+  <text class="cap" x="16" y="216"><tspan class="capb">O(log(m·n))</tspan>, which equals O(log m + log n) — the same as the two-stage &#8220;find the row, then search it&#8221; approach,</text>
+  <text class="cap" x="16" y="238">but in one loop with no special cases. Mention both; the flattening version is the tidier answer.</text>
+</svg>
+<figcaption><b>Flattening.</b> <code>divmod(mid, cols)</code> converts a flat index back to (row, col). Note this only works when rows chain together &mdash; a matrix that&rsquo;s merely sorted per row and per column (a different classic problem) needs staircase search instead.</figcaption>
+</figure>
+
+<h3>2. Binary search on the answer space</h3>
+
+<p>Koko Eating Bananas. You don&rsquo;t search the piles; you search <em>speeds</em> <code>1…max(piles)</code>. For a candidate speed, compute hours needed; &ldquo;fits in <code>h</code> hours&rdquo; is monotonic in speed, so binary search for the smallest speed that fits.</p>
+
+<figure>
+<svg viewBox="0 0 740 270" role="img" aria-label="Koko eating bananas: binary searching the range of speeds, not the array of piles">
+  <text class="capb" x="0" y="16">piles = [3, 6, 7, 11], h = 8 hours</text>
+
+  <text class="cap t-bad" x="0" y="46">✗ What you are NOT searching</text>
+  <g opacity=".5">
+    <rect class="cell" x="0"   y="58" width="60" height="34" rx="4"/><text class="val" x="30"  y="81" text-anchor="middle">3</text>
+    <rect class="cell" x="64"  y="58" width="60" height="34" rx="4"/><text class="val" x="94"  y="81" text-anchor="middle">6</text>
+    <rect class="cell" x="128" y="58" width="60" height="34" rx="4"/><text class="val" x="158" y="81" text-anchor="middle">7</text>
+    <rect class="cell" x="192" y="58" width="60" height="34" rx="4"/><text class="val" x="222" y="81" text-anchor="middle">11</text>
+  </g>
+  <text class="tiny" x="266" y="80">the piles are not even sorted, and sorting them wouldn&#8217;t help</text>
+
+  <text class="cap t-good" x="0" y="126">✓ What you ARE searching: the range of possible speeds</text>
+  <g>
+    <rect class="sv-bad" x="0"   y="138" width="88" height="38" rx="4"/><text class="val" x="44"  y="163" text-anchor="middle">1</text>
+    <rect class="sv-bad" x="92"  y="138" width="88" height="38" rx="4"/><text class="val" x="136" y="163" text-anchor="middle">2</text>
+    <rect class="sv-bad" x="184" y="138" width="88" height="38" rx="4"/><text class="val" x="228" y="163" text-anchor="middle">3</text>
+    <rect class="sv-good" x="276" y="138" width="88" height="38" rx="4"/><text class="val" x="320" y="163" text-anchor="middle">4</text>
+    <rect class="sv-good" x="368" y="138" width="88" height="38" rx="4"/><text class="val" x="412" y="163" text-anchor="middle">5</text>
+    <rect class="sv-good" x="460" y="138" width="88" height="38" rx="4"/><text class="val" x="504" y="163" text-anchor="middle">…</text>
+    <rect class="sv-good" x="552" y="138" width="88" height="38" rx="4"/><text class="val" x="596" y="163" text-anchor="middle">11</text>
+  </g>
+  <text class="tiny t-bad" x="44"  y="194" text-anchor="middle">13h</text>
+  <text class="tiny t-bad" x="136" y="194" text-anchor="middle">9h</text>
+  <text class="tiny t-bad" x="228" y="194" text-anchor="middle">9h</text>
+  <text class="tiny t-good" x="320" y="194" text-anchor="middle">6h ✓</text>
+  <text class="tiny t-good" x="412" y="194" text-anchor="middle">5h ✓</text>
+  <text class="tiny t-good" x="596" y="194" text-anchor="middle">4h ✓</text>
+  <line class="s-acc" x1="274" y1="130" x2="274" y2="204"/>
+  <text class="cap t-acc" x="320" y="220">smallest speed that fits &#8594; answer 4</text>
+
+  <text class="cap" x="0" y="252"><tspan class="capb">Bounds:</tspan> lo = 1 (must eat something), hi = max(piles) (faster than that changes nothing — one pile per hour is the cap).</text>
+</svg>
+<figcaption><b>Searching the answer, not the input.</b> The tell for this family: the problem asks for a <em>minimum / maximum value such that some condition holds</em>, the condition is expensive to invert but cheap to <em>check</em>, and checking it is monotonic. Then binary search the answers and use the check as your comparator.</figcaption>
+</figure>
+
+<pre><code>import math
+def minEatingSpeed(piles, h):
+    def hours_needed(speed):
+        return sum(math.ceil(p / speed) for p in piles)
+
+    left, right = 1, max(piles)
+    while left &lt; right:
+        mid = (left + right) // 2
+        if hours_needed(mid) &lt;= h:        # this speed works — try slower
+            right = mid                   # keep mid: it might be the answer
+        else:                             # too slow — must go faster
+            left = mid + 1
+    return left                           # smallest speed that fits
+</code></pre>
+
+<h3>3. Rotated / partially-sorted arrays</h3>
+
+<p>Find Minimum in Rotated Sorted Array and Search in Rotated Sorted Array. The invariant that saves you: <strong>at any <code>mid</code>, either <code>[left..mid]</code> or <code>[mid..right]</code> is fully sorted.</strong> Determine which, check whether your target lies inside that sorted half&rsquo;s range, and recurse into the correct side.</p>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="A rotated sorted array always has one fully sorted half around mid">
+  <text class="capb" x="0" y="16">[4, 5, 6, 7, 0, 1, 2] — sorted, then rotated</text>
+
+  <g>
+    <rect class="sv-good" x="0"   y="34" width="98" height="42" rx="5"/><text class="val" x="49"  y="61" text-anchor="middle">4</text>
+    <rect class="sv-good" x="102" y="34" width="98" height="42" rx="5"/><text class="val" x="151" y="61" text-anchor="middle">5</text>
+    <rect class="sv-good" x="204" y="34" width="98" height="42" rx="5"/><text class="val" x="253" y="61" text-anchor="middle">6</text>
+    <rect class="sv-acc"  x="306" y="34" width="98" height="42" rx="5"/><text class="val" x="355" y="61" text-anchor="middle">7</text>
+    <rect class="cell"    x="408" y="34" width="98" height="42" rx="5"/><text class="val" x="457" y="61" text-anchor="middle">0</text>
+    <rect class="cell"    x="510" y="34" width="98" height="42" rx="5"/><text class="val" x="559" y="61" text-anchor="middle">1</text>
+    <rect class="cell"    x="612" y="34" width="98" height="42" rx="5"/><text class="val" x="661" y="61" text-anchor="middle">2</text>
+  </g>
+  <text class="cap t-acc" x="355" y="96" text-anchor="middle">mid</text>
+  <path class="s-good" d="M0 108 L404 108"/>
+  <text class="cap t-good" x="200" y="128">left half [4…7] is <tspan class="capb">fully sorted</tspan></text>
+  <path class="s-bad" d="M406 108 L710 108"/>
+  <text class="cap t-bad" x="470" y="128">right half [7,0,1,2] contains the wrap</text>
+
+  <text class="cap" x="0" y="164">Test with one comparison: <tspan class="sv-mono">nums[left] &#8804; nums[mid]</tspan> &#8594; the left half is the sorted one.</text>
+
+  <rect class="panel" x="0" y="182" width="740" height="136" rx="10"/>
+  <text class="capb" x="16" y="206">The decision, in full</text>
+  <text class="cap" x="16" y="232">If the <tspan class="capb t-good">left</tspan> half is sorted:</text>
+  <text class="cap" x="32" y="254">target in <tspan class="sv-mono">[nums[left], nums[mid])</tspan>? &#8594; search left. Otherwise &#8594; search right.</text>
+  <text class="cap" x="16" y="280">If the <tspan class="capb t-bad">right</tspan> half is sorted:</text>
+  <text class="cap" x="32" y="302">target in <tspan class="sv-mono">(nums[mid], nums[right]]</tspan>? &#8594; search right. Otherwise &#8594; search left.</text>
+</svg>
+<figcaption><b>One half is always sorted.</b> Only inside a sorted half can you answer &ldquo;is the target in this range?&rdquo; with two comparisons. So you always test membership against the <em>sorted</em> side, and the else-branch sends you to the other one. Do <b>Find Minimum</b> first &mdash; same invariant, simpler goal.</figcaption>
+</figure>
+
+<pre><code>def search(nums, target):
+    left, right = 0, len(nums) - 1
+    while left &lt;= right:
+        mid = (left + right) // 2
+        if nums[mid] == target:
+            return mid
+        if nums[left] &lt;= nums[mid]:              # left half is sorted
+            if nums[left] &lt;= target &lt; nums[mid]:
+                right = mid - 1
+            else:
+                left = mid + 1
+        else:                                    # right half is sorted
+            if nums[mid] &lt; target &lt;= nums[right]:
+                left = mid + 1
+            else:
+                right = mid - 1
+    return -1
+</code></pre>
+
+<p>Find Minimum is the same invariant with a simpler objective &mdash; you don&rsquo;t need a target at all, only &ldquo;which side holds the wrap point&rdquo;:</p>
+
+<pre><code>def findMin(nums):
+    left, right = 0, len(nums) - 1
+    while left &lt; right:
+        mid = (left + right) // 2
+        if nums[mid] &gt; nums[right]:   # the drop is to the right of mid
+            left = mid + 1
+        else:                         # mid could itself be the minimum
+            right = mid
+    return nums[left]
+</code></pre>
+
+<div class="callout note">
+  <span class="ct">Why compare against <code>right</code>, not <code>left</code>?</span>
+  <p>Comparing <code>nums[mid]</code> with <code>nums[right]</code> is unambiguous: if <code>nums[mid] &gt; nums[right]</code>, the wrap must lie strictly after <code>mid</code>. Comparing against <code>nums[left]</code> needs an extra case for the already-sorted (zero-rotation) array. Small choice, meaningfully less code.</p>
+</div>
+
+<h3>4. Binary search as a component in a design problem</h3>
+
+<p>Time Based Key-Value Store. Each key stores an append-only, timestamp-sorted list of <code>(timestamp, value)</code>; <code>get(key, t)</code> binary-searches that list for the largest timestamp <code>&lt;= t</code>. This is the &ldquo;floor&rdquo; variant &mdash; you&rsquo;re not looking for an exact match, you&rsquo;re looking for the best candidate at or below a bound.</p>
+
+<pre><code>class TimeMap:
+    def __init__(self):
+        self.store = {}                       # key -> list of [timestamp, value], ascending
+
+    def set(self, key, value, timestamp):
+        self.store.setdefault(key, []).append([timestamp, value])
+
+    def get(self, key, timestamp):
+        entries = self.store.get(key, [])
+        res = ""
+        left, right = 0, len(entries) - 1
+        while left &lt;= right:
+            mid = (left + right) // 2
+            if entries[mid][0] &lt;= timestamp:
+                res = entries[mid][1]         # a valid candidate — remember it
+                left = mid + 1                # but try for a later one
+            else:
+                right = mid - 1
+        return res
+</code></pre>
+
+<div class="callout tip">
+  <span class="ct">The floor-search idiom</span>
+  <p>&ldquo;Record the candidate, then keep searching in the promising direction&rdquo; is a clean way to write any boundary search without fighting the loop conventions. It costs one extra variable and removes a whole class of off-by-one bugs.</p>
+</div>
+
+<h3>5. Partition search &mdash; the boss</h3>
+
+<p>Median of Two Sorted Arrays. Famously hard, and the payoff for everything above: instead of searching for a <em>value</em>, you binary-search for a <em>partition point</em> in the smaller array such that everything left of the combined partition is <code>&lt;=</code> everything to its right. The median falls out of the four boundary elements.</p>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Median of two sorted arrays via a correct partition">
+  <text class="capb" x="0" y="16">A = [1, 3, 8, 9, 15]   ·   B = [7, 11, 18, 19, 21, 25]   ·   total 11 → median is the 6th smallest</text>
+
+  <!-- A -->
+  <text class="cap" x="0" y="56">A</text>
+  <g>
+    <rect class="sv-good" x="30"  y="36" width="58" height="38" rx="4"/><text class="val" x="59"  y="61" text-anchor="middle">1</text>
+    <rect class="sv-good" x="92"  y="36" width="58" height="38" rx="4"/><text class="val" x="121" y="61" text-anchor="middle">3</text>
+    <rect class="sv-good" x="154" y="36" width="58" height="38" rx="4"/><text class="val" x="183" y="61" text-anchor="middle">8</text>
+    <rect class="sv-info" x="222" y="36" width="58" height="38" rx="4"/><text class="val" x="251" y="61" text-anchor="middle">9</text>
+    <rect class="sv-info" x="284" y="36" width="58" height="38" rx="4"/><text class="val" x="313" y="61" text-anchor="middle">15</text>
+  </g>
+  <line class="s-acc" x1="216" y1="28" x2="216" y2="82"/>
+  <text class="tiny t-acc" x="216" y="98" text-anchor="middle">cut A after 3 elements</text>
+
+  <!-- B -->
+  <text class="cap" x="0" y="146">B</text>
+  <g>
+    <rect class="sv-good" x="30"  y="126" width="58" height="38" rx="4"/><text class="val" x="59"  y="151" text-anchor="middle">7</text>
+    <rect class="sv-good" x="92"  y="126" width="58" height="38" rx="4"/><text class="val" x="121" y="151" text-anchor="middle">11</text>
+    <rect class="sv-good" x="154" y="126" width="58" height="38" rx="4"/><text class="val" x="183" y="151" text-anchor="middle">18</text>
+    <rect class="sv-info" x="222" y="126" width="58" height="38" rx="4"/><text class="val" x="251" y="151" text-anchor="middle">19</text>
+    <rect class="sv-info" x="284" y="126" width="58" height="38" rx="4"/><text class="val" x="313" y="151" text-anchor="middle">21</text>
+    <rect class="sv-info" x="346" y="126" width="58" height="38" rx="4"/><text class="val" x="375" y="151" text-anchor="middle">25</text>
+  </g>
+  <line class="s-acc" x1="216" y1="118" x2="216" y2="172"/>
+  <text class="tiny t-acc" x="216" y="188" text-anchor="middle">cut B after 3 elements — 3 + 3 = 6 on the left</text>
+
+  <text class="cap t-good" x="420" y="60">left side (6 smallest)</text>
+  <text class="cap t-info" x="420" y="150">right side</text>
+
+  <rect class="panel" x="0" y="206" width="740" height="120" rx="10"/>
+  <text class="capb" x="16" y="230">The correctness test — four numbers, two comparisons</text>
+  <text class="cap" x="16" y="256"><tspan class="sv-mono">maxLeftA &#8804; minRightB</tspan>  and  <tspan class="sv-mono">maxLeftB &#8804; minRightA</tspan></text>
+  <text class="cap" x="16" y="278">Here: 8 &#8804; 19 &#10003;  and  18 &#8804; 9 &#10007; &#8594; B&#8217;s left side reaches too high, so <tspan class="capb">move A&#8217;s cut right</tspan>.</text>
+  <text class="cap" x="16" y="302">Binary search only over A&#8217;s cut position (<tspan class="capb">the smaller array</tspan>, so it&#8217;s O(log min(m, n))); B&#8217;s cut is</text>
+  <text class="cap" x="16" y="322">forced by arithmetic: <tspan class="sv-mono">cutB = (m + n + 1) // 2 − cutA</tspan>. Use ±&#8734; sentinels at the array edges.</text>
+</svg>
+<figcaption><b>Partition search.</b> Note what&rsquo;s being halved: not values, but <em>cut positions</em>. Once the correct cut is found, the median is <code>max(maxLeftA, maxLeftB)</code> for odd totals, or the average of that and <code>min(minRightA, minRightB)</code> for even ones. The ±∞ sentinels remove every empty-side special case.</figcaption>
+</figure>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>What you halve</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Plain sorted search</b></td><td>Array indices. The 2D one just flattens the index with <code>divmod</code>.</td><td>Binary Search <span class="tag easy">easy</span>, Search a 2D Matrix <span class="tag med">med</span></td></tr>
+<tr><td><b>2. Search-on-answer</b></td><td>The range of possible answers, using a monotonic &ldquo;does this candidate work?&rdquo; check.</td><td>Koko Eating Bananas <span class="tag med">med</span></td></tr>
+<tr><td><b>3. Rotated array</b></td><td>Indices, using &ldquo;one half is always sorted&rdquo; to decide which side to keep.</td><td>Find Minimum in Rotated Sorted Array <span class="tag med">med</span>, Search in Rotated Sorted Array <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Design with an internal binary search</b></td><td>A per-key sorted timestamp list, searching for the floor.</td><td>Time Based Key-Value Store <span class="tag med">med</span></td></tr>
+<tr><td><b>5. Partition search</b></td><td>Cut positions in the smaller array.</td><td>Median of Two Sorted Arrays <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Binary Search</b><span class="why">Nail the template and the boundary conventions. Write it from memory until it&rsquo;s reflexive.</span></li>
+<li><b>Search a 2D Matrix</b><span class="why">Same template, flattened index. <code>divmod(mid, cols)</code>.</span></li>
+<li><b>Koko Eating Bananas</b><span class="why">The mental shift: search the answer space, not the array. State the monotonic predicate out loud.</span></li>
+<li><b>Find Minimum in Rotated Sorted Array</b><span class="why">Learn the &ldquo;which half is sorted&rdquo; test with the simplest possible objective.</span></li>
+<li><b>Search in Rotated Sorted Array</b><span class="why">The same reasoning aimed at a target instead of the minimum. Do this back-to-back with #4.</span></li>
+<li><b>Time Based Key-Value Store</b><span class="why">Binary search as a component. Practise the floor-search idiom.</span></li>
+<li class="boss"><b>Median of Two Sorted Arrays</b><span class="why">The hardest — partition search. Always binary-search the shorter array, and use ±∞ sentinels.</span></li>
+</ol>
+
+<p>Do problems 4 and 5 back-to-back: Find Minimum teaches the &ldquo;one half is always sorted&rdquo; invariant with a simpler objective, and Search in Rotated is that exact same reasoning aimed at a target.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Search space</th></tr></thead>
+<tbody>
+<tr><td>Binary Search</td><td>O(log n)</td><td>O(1)</td><td>indices</td></tr>
+<tr><td>Search a 2D Matrix</td><td>O(log(m·n))</td><td>O(1)</td><td>flattened indices</td></tr>
+<tr><td>Koko Eating Bananas</td><td>O(n log max)</td><td>O(1)</td><td>speeds 1…max(piles)</td></tr>
+<tr><td>Find Min in Rotated</td><td>O(log n)</td><td>O(1)</td><td>indices</td></tr>
+<tr><td>Search in Rotated</td><td>O(log n)</td><td>O(1)</td><td>indices</td></tr>
+<tr><td>Time Based KV Store</td><td>O(1) set / O(log n) get</td><td>O(n)</td><td>timestamps per key</td></tr>
+<tr><td>Median of Two Sorted Arrays</td><td>O(log min(m,n))</td><td>O(1)</td><td>cut positions</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — the infinite loop</span>
+  <p>A branch that assigns <code>left = mid</code> with <code>mid</code> rounded down never terminates when <code>right - left == 1</code>. Either round <code>mid</code> up, or make both branches exclude <code>mid</code>.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — mixed bound conventions</span>
+  <p><code>right = len(nums)</code> with <code>while left &lt;= right</code> will index out of range. Pick one convention per problem and keep it.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — assuming the answer space is monotonic without checking</span>
+  <p>Before search-on-answer, actually verify: if speed <code>s</code> works, does every <code>s+1</code> work? If the predicate can flip back, binary search silently returns garbage.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — searching the longer array in Median</span>
+  <p>Binary-search the <em>shorter</em> array. Otherwise the derived cut in the other array can go negative or past the end, and you&rsquo;ll be clamping indices forever.</p>
+</div>
+
+<div class="callout note">
+  <span class="ct">A note on <code>(left + right) // 2</code></span>
+  <p>In C++/Java this can overflow, and <code>left + (right - left) // 2</code> is the standard fix. Python integers are arbitrary-precision so it can&rsquo;t overflow here &mdash; but knowing <em>why</em> the other form exists is a good thing to mention.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Write these two comments first</span>
+  <p><code># search space: [what left and right represent]</code><br><code># I move left/right when: [the proof that the answer is on the other side]</code></p>
+  <p>Especially for the answer-space and rotated problems, being explicit about <em>what you&rsquo;re halving</em> and <em>why the eliminated half can&rsquo;t contain the answer</em> is the difference between a clean solution and an infinite loop.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stack — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="stack" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Stack</h1>
+<p class="deck">A list you only touch at one end &mdash; and the right tool for a surprisingly deep idea: <em>remember things in the order I saw them, and resolve them in reverse.</em></p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">7</div></div>
+  <div class="fact"><div class="k">Discipline</div><div class="v">LIFO</div></div>
+  <div class="fact"><div class="k">Real payload</div><div class="v" style="font-size:14px">monotonic stack</div></div>
+  <div class="fact"><div class="k">Push / pop</div><div class="v">O(1)</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>The core structure</h2>
+
+<p class="lead-in">In Python you don&rsquo;t need a special class &mdash; a plain list <em>is</em> a stack:</p>
+
+<pre><code>stack = []
+stack.append(x)      # push
+top = stack[-1]      # peek (don't remove)
+x = stack.pop()      # pop (LIFO — last in, first out)
+</code></pre>
+
+<p>The only rules: you always add and remove from the same end (<code>[-1]</code>), and you never index into the middle. That LIFO discipline is what makes a stack model <em>&ldquo;most recent first.&rdquo;</em></p>
+
+<figure>
+<svg viewBox="0 0 740 260" role="img" aria-label="Push and pop operate on the same end of a stack">
+  <!-- push -->
+  <text class="capb" x="0" y="18">push — append to the top</text>
+  <g>
+    <rect class="cell" x="30"  y="180" width="130" height="38" rx="5"/><text class="val" x="95" y="205" text-anchor="middle">a</text>
+    <rect class="cell" x="30"  y="140" width="130" height="38" rx="5"/><text class="val" x="95" y="165" text-anchor="middle">b</text>
+    <rect class="cell" x="30"  y="100" width="130" height="38" rx="5"/><text class="val" x="95" y="125" text-anchor="middle">c</text>
+    <rect class="sv-acc" x="30" y="60" width="130" height="38" rx="5"/><text class="val" x="95" y="85" text-anchor="middle">d</text>
+  </g>
+  <path class="s-acc" d="M95 20 L95 50"/><path class="f-acc" d="M95 58 l-5,-9 l10,0 z"/>
+  <text class="cap t-acc" x="175" y="84">new element lands here</text>
+  <text class="tiny" x="175" y="204">bottom — untouchable until everything above leaves</text>
+  <line class="sv-line" x1="24" y1="222" x2="166" y2="222"/>
+
+  <!-- pop -->
+  <text class="capb" x="300" y="18">pop — take from the same end</text>
+  <g>
+    <rect class="cell" x="330" y="180" width="130" height="38" rx="5"/><text class="val" x="395" y="205" text-anchor="middle">a</text>
+    <rect class="cell" x="330" y="140" width="130" height="38" rx="5"/><text class="val" x="395" y="165" text-anchor="middle">b</text>
+    <rect class="cell" x="330" y="100" width="130" height="38" rx="5"/><text class="val" x="395" y="125" text-anchor="middle">c</text>
+    <rect class="sv-bad" x="330" y="60" width="130" height="38" rx="5" opacity=".55"/><text class="val" x="395" y="85" text-anchor="middle">d</text>
+  </g>
+  <path class="s-bad" d="M395 55 L395 28"/><path class="f-bad" d="M395 20 l-5,9 l10,0 z"/>
+  <text class="cap t-bad" x="475" y="84">'d' comes off first — it went in last</text>
+  <line class="sv-line" x1="324" y1="222" x2="466" y2="222"/>
+
+  <text class="cap" x="300" y="150">A stack answers one question well:</text>
+  <text class="capb" x="300" y="172">&#8220;what is the most recent unresolved thing?&#8221;</text>
+  <text class="tiny" x="300" y="248">Everything in this section is a rephrasing of that question.</text>
+</svg>
+<figcaption><b>Last in, first out.</b> Both operations touch <code>[-1]</code>, which is why both are O(1) on a Python list &mdash; no shifting is ever required. (Using <code>pop(0)</code> instead would be O(n) and is a queue, not a stack.)</figcaption>
+</figure>
+
+<h2>The one idea: is the most recent unresolved thing what decides?</h2>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;When I process the current element, is the thing it interacts with the <em>most recently seen</em> one that hasn&rsquo;t been dealt with yet?&rdquo;</p>
+</div>
+
+<p>If yes, that&rsquo;s a stack. Look at how uniformly this fits:</p>
+
+<ul>
+<li>A closing bracket must match the <em>most recent</em> unmatched opening bracket.</li>
+<li>A warmer temperature resolves the <em>most recent</em> colder day still waiting for a warmer one.</li>
+<li>An operator in RPN consumes the <em>two most recent</em> operands.</li>
+<li>A slower car ahead absorbs the <em>most recent</em> faster car behind it.</li>
+</ul>
+
+<p>Every time the answer is &ldquo;the latest thing I haven&rsquo;t finished with,&rdquo; you push while you&rsquo;re unsure and pop the moment the current element resolves what&rsquo;s on top.</p>
+
+<h2>Pattern A: matching and balancing</h2>
+
+<p>Push openers; when you hit a closer, pop and check it matches. If the stack is empty at the end, everything paired up.</p>
+
+<figure>
+<svg viewBox="0 0 740 288" role="img" aria-label="Valid parentheses traced with a stack">
+  <text class="capb" x="0" y="16">s = "( [ { } ] )"</text>
+
+  <g>
+    <rect class="cell" x="0"   y="34" width="70" height="40" rx="5"/><text class="val" x="35"  y="60" text-anchor="middle">(</text>
+    <rect class="cell" x="78"  y="34" width="70" height="40" rx="5"/><text class="val" x="113" y="60" text-anchor="middle">[</text>
+    <rect class="cell" x="156" y="34" width="70" height="40" rx="5"/><text class="val" x="191" y="60" text-anchor="middle">{</text>
+    <rect class="cell" x="234" y="34" width="70" height="40" rx="5"/><text class="val" x="269" y="60" text-anchor="middle">}</text>
+    <rect class="cell" x="312" y="34" width="70" height="40" rx="5"/><text class="val" x="347" y="60" text-anchor="middle">]</text>
+    <rect class="cell" x="390" y="34" width="70" height="40" rx="5"/><text class="val" x="425" y="60" text-anchor="middle">)</text>
+  </g>
+  <text class="tiny t-good" x="35"  y="92" text-anchor="middle">push</text>
+  <text class="tiny t-good" x="113" y="92" text-anchor="middle">push</text>
+  <text class="tiny t-good" x="191" y="92" text-anchor="middle">push</text>
+  <text class="tiny t-acc"  x="269" y="92" text-anchor="middle">pop {</text>
+  <text class="tiny t-acc"  x="347" y="92" text-anchor="middle">pop [</text>
+  <text class="tiny t-acc"  x="425" y="92" text-anchor="middle">pop (</text>
+
+  <!-- nesting arcs -->
+  <path class="s-info" d="M35 108 C 35 170, 425 170, 425 108"/>
+  <path class="s-info" d="M113 108 C 113 152, 347 152, 347 108"/>
+  <path class="s-info" d="M191 108 C 191 134, 269 134, 269 108"/>
+  <text class="cap t-info" x="530" y="130">nesting is strictly innermost-first —</text>
+  <text class="cap t-info" x="530" y="150">exactly LIFO order</text>
+
+  <!-- stack states -->
+  <text class="capb" x="0" y="204">stack after each step</text>
+  <g>
+    <rect class="sv-acc" x="0"   y="216" width="70" height="30" rx="4"/><text class="val" x="35"  y="237" text-anchor="middle">(</text>
+    <rect class="sv-acc" x="78"  y="216" width="70" height="30" rx="4"/><text class="val" x="113" y="237" text-anchor="middle">([</text>
+    <rect class="sv-acc" x="156" y="216" width="70" height="30" rx="4"/><text class="val" x="191" y="237" text-anchor="middle">([{</text>
+    <rect class="sv-acc" x="234" y="216" width="70" height="30" rx="4"/><text class="val" x="269" y="237" text-anchor="middle">([</text>
+    <rect class="sv-acc" x="312" y="216" width="70" height="30" rx="4"/><text class="val" x="347" y="237" text-anchor="middle">(</text>
+    <rect class="sv-good" x="390" y="216" width="70" height="30" rx="4"/><text class="val" x="425" y="237" text-anchor="middle">∅</text>
+  </g>
+  <text class="cap t-good" x="480" y="237">empty at the end &#8594; <tspan class="capb">valid</tspan></text>
+  <text class="tiny" x="0" y="272">Three failure modes: wrong match on pop · pop from an empty stack (a closer with no opener) · non-empty at the end (unclosed openers).</text>
+</svg>
+<figcaption><b>Bracket matching.</b> The stack literally <em>is</em> the list of things still waiting to be closed. Note all three failure modes &mdash; candidates routinely forget the last one and return <code>True</code> for <code>"((("</code>.</figcaption>
+</figure>
+
+<pre><code>def isValid(s):
+    pairs = {")": "(", "]": "[", "}": "{"}
+    stack = []
+    for c in s:
+        if c in pairs:                        # a closer
+            if not stack or stack.pop() != pairs[c]:
+                return False
+        else:                                 # an opener
+            stack.append(c)
+    return not stack                          # leftovers mean unclosed openers
+</code></pre>
+
+<h2>Pattern B: the monotonic stack &mdash; this section&rsquo;s real payload</h2>
+
+<p>This is the pattern that makes the stack section click. You keep the stack in sorted order (increasing or decreasing); before pushing the current element, you <em>pop everything that the current element resolves</em>.</p>
+
+<div class="callout key">
+  <span class="ct">The insight worth memorising</span>
+  <p>When you <strong>pop</strong> an element, you&rsquo;ve found that element&rsquo;s answer <em>for free</em> &mdash; because the current element is the first thing bigger (or smaller) than it that you&rsquo;ve encountered. The pop is not cleanup; <b>the pop is the computation.</b></p>
+</div>
+
+<figure>
+<svg viewBox="0 0 740 380" role="img" aria-label="Daily temperatures resolved by a monotonic stack">
+  <text class="capb" x="0" y="16">temperatures = [73, 74, 75, 71, 69, 72, 76, 73]</text>
+
+  <g>
+    <rect class="cell" x="0"   y="34" width="86" height="40" rx="5"/><text class="val" x="43"  y="60" text-anchor="middle">73</text><text class="idx" x="43" y="90" text-anchor="middle">day 0</text>
+    <rect class="cell" x="90"  y="34" width="86" height="40" rx="5"/><text class="val" x="133" y="60" text-anchor="middle">74</text><text class="idx" x="133" y="90" text-anchor="middle">1</text>
+    <rect class="cell" x="180" y="34" width="86" height="40" rx="5"/><text class="val" x="223" y="60" text-anchor="middle">75</text><text class="idx" x="223" y="90" text-anchor="middle">2</text>
+    <rect class="cell" x="270" y="34" width="86" height="40" rx="5"/><text class="val" x="313" y="60" text-anchor="middle">71</text><text class="idx" x="313" y="90" text-anchor="middle">3</text>
+    <rect class="cell" x="360" y="34" width="86" height="40" rx="5"/><text class="val" x="403" y="60" text-anchor="middle">69</text><text class="idx" x="403" y="90" text-anchor="middle">4</text>
+    <rect class="sv-acc" x="450" y="34" width="86" height="40" rx="5"/><text class="val" x="493" y="60" text-anchor="middle">72</text><text class="idx" x="493" y="90" text-anchor="middle">5</text>
+    <rect class="cell" x="540" y="34" width="86" height="40" rx="5"/><text class="val" x="583" y="60" text-anchor="middle">76</text><text class="idx" x="583" y="90" text-anchor="middle">6</text>
+    <rect class="cell" x="630" y="34" width="86" height="40" rx="5"/><text class="val" x="673" y="60" text-anchor="middle">73</text><text class="idx" x="673" y="90" text-anchor="middle">7</text>
+  </g>
+
+  <text class="cap" x="0" y="128">Arriving at day 5 (72&#176;), the stack holds indices <tspan class="sv-mono">[2, 3, 4]</tspan> with values 75, 71, 69 — increasing bottom&#8594;top? No:</text>
+  <text class="cap" x="0" y="148"><tspan class="sv-mono">decreasing</tspan> bottom&#8594;top. Each is a day still waiting for something warmer.</text>
+
+  <!-- stack column -->
+  <g>
+    <rect class="cell" x="0"  y="176" width="200" height="34" rx="5"/><text class="val" x="100" y="199" text-anchor="middle">idx 2 · 75°</text>
+    <rect class="sv-bad" x="0" y="214" width="200" height="34" rx="5"/><text class="val" x="100" y="237" text-anchor="middle">idx 3 · 71°</text>
+    <rect class="sv-bad" x="0" y="252" width="200" height="34" rx="5"/><text class="val" x="100" y="275" text-anchor="middle">idx 4 · 69°  ← top</text>
+  </g>
+
+  <path class="s-acc" d="M212 268 L300 268"/><path class="f-acc" d="M308 268 l-9,-5 l0,10 z"/>
+  <text class="cap" x="320" y="200">72 &gt; 69 &#8594; <tspan class="t-acc capb">pop idx 4</tspan>, answer[4] = 5 − 4 = <tspan class="capb">1</tspan></text>
+  <text class="cap" x="320" y="226">72 &gt; 71 &#8594; <tspan class="t-acc capb">pop idx 3</tspan>, answer[3] = 5 − 3 = <tspan class="capb">2</tspan></text>
+  <text class="cap" x="320" y="252">72 &lt; 75 &#8594; stop. Push idx 5 and carry on.</text>
+  <text class="cap t-good" x="320" y="284">Two answers finalised in one step, each at the</text>
+  <text class="cap t-good" x="320" y="304">moment of its pop, and never revisited.</text>
+
+  <rect class="panel" x="0" y="316" width="740" height="60" rx="10"/>
+  <text class="cap" x="16" y="340"><tspan class="capb">Why it&#8217;s O(n) despite the inner while:</tspan> every index is pushed exactly once and popped at most once.</text>
+  <text class="cap" x="16" y="362">Total pushes + pops &#8804; 2n. The inner loop is amortised, exactly like the sliding-window shrink loop.</text>
+</svg>
+<figcaption><b>Daily Temperatures.</b> Store <em>indices</em>, not values, whenever the answer involves a distance. Largest Rectangle in Histogram does the same to compute widths.</figcaption>
+</figure>
+
+<pre><code>def dailyTemperatures(temps):
+    stack = []                                # indices, temps decreasing bottom->top
+    result = [0] * len(temps)
+    for i, t in enumerate(temps):
+        while stack and temps[stack[-1]] &lt; t:
+            j = stack.pop()                   # t is the "next warmer" for day j
+            result[j] = i - j
+        stack.append(i)
+    return result                             # anything left has no warmer day: stays 0
+</code></pre>
+
+<div class="callout note">
+  <span class="ct">Which direction should the stack be sorted?</span>
+  <p>Work backwards from what you pop. You pop when the current element <em>resolves</em> the top. For &ldquo;next greater,&rdquo; the current element resolves smaller tops → so tops must be smaller than what&rsquo;s below → the stack is <b>decreasing</b> bottom→top, and you pop while <code>stack[-1] &lt; current</code>. For &ldquo;next smaller,&rdquo; flip both.</p>
+</div>
+
+<h2>Pattern C: the stack as a running computation</h2>
+
+<p>In Evaluate Reverse Polish Notation the stack isn&rsquo;t bookkeeping &mdash; it <em>is</em> the calculation. Push numbers; on an operator, pop the top two, apply, push the result.</p>
+
+<figure>
+<svg viewBox="0 0 740 280" role="img" aria-label="Evaluating reverse polish notation with a stack">
+  <text class="capb" x="0" y="16">tokens = ["2", "1", "+", "3", "*"]   →   (2 + 1) × 3 = 9</text>
+
+  <g>
+    <text class="cap" x="10" y="52">"2"</text>
+    <rect class="sv-acc" x="0" y="62" width="100" height="34" rx="5"/><text class="val" x="50" y="85" text-anchor="middle">2</text>
+    <text class="tiny" x="50" y="118" text-anchor="middle">push</text>
+  </g>
+  <g>
+    <text class="cap" x="150" y="52">"1"</text>
+    <rect class="sv-acc" x="140" y="62" width="100" height="34" rx="5"/><text class="val" x="190" y="85" text-anchor="middle">1</text>
+    <rect class="cell"   x="140" y="100" width="100" height="34" rx="5"/><text class="val" x="190" y="123" text-anchor="middle">2</text>
+    <text class="tiny" x="190" y="152" text-anchor="middle">push</text>
+  </g>
+  <g>
+    <text class="cap" x="290" y="52">"+"</text>
+    <rect class="sv-good" x="280" y="62" width="100" height="34" rx="5"/><text class="val" x="330" y="85" text-anchor="middle">3</text>
+    <text class="tiny t-good" x="330" y="118" text-anchor="middle">pop 1, pop 2,</text>
+    <text class="tiny t-good" x="330" y="134" text-anchor="middle">push 2+1</text>
+  </g>
+  <g>
+    <text class="cap" x="430" y="52">"3"</text>
+    <rect class="sv-acc" x="420" y="62" width="100" height="34" rx="5"/><text class="val" x="470" y="85" text-anchor="middle">3</text>
+    <rect class="cell"   x="420" y="100" width="100" height="34" rx="5"/><text class="val" x="470" y="123" text-anchor="middle">3</text>
+    <text class="tiny" x="470" y="152" text-anchor="middle">push</text>
+  </g>
+  <g>
+    <text class="cap" x="570" y="52">"*"</text>
+    <rect class="sv-good" x="560" y="62" width="100" height="34" rx="5"/><text class="val" x="610" y="85" text-anchor="middle">9</text>
+    <text class="tiny t-good" x="610" y="118" text-anchor="middle">pop 3, pop 3,</text>
+    <text class="tiny t-good" x="610" y="134" text-anchor="middle">push 3×3</text>
+  </g>
+
+  <rect class="panel" x="0" y="180" width="740" height="94" rx="10"/>
+  <text class="capb" x="16" y="204">Order matters for non-commutative operators</text>
+  <text class="cap" x="16" y="228">The <tspan class="capb">first</tspan> pop is the <tspan class="capb">right</tspan> operand: <tspan class="sv-mono">b = pop(); a = pop(); push(a - b)</tspan>.</text>
+  <text class="cap" x="16" y="250">Getting this backwards passes every <tspan class="sv-mono">+</tspan> and <tspan class="sv-mono">*</tspan> test and fails every <tspan class="sv-mono">-</tspan> and <tspan class="sv-mono">/</tspan> one.</text>
+  <text class="tiny" x="16" y="268">Also: LeetCode wants division truncated toward zero — use <tspan class="sv-mono">int(a / b)</tspan>, not <tspan class="sv-mono">a // b</tspan>, which floors toward −∞.</text>
+</svg>
+<figcaption><b>RPN, evaluated.</b> Postfix notation exists precisely <em>because</em> it can be evaluated by a single stack pass with no precedence rules and no parentheses. That&rsquo;s the point of the problem.</figcaption>
+</figure>
+
+<h2>Techniques you&rsquo;ll reuse</h2>
+
+<h3>A stack can carry auxiliary info alongside the value</h3>
+
+<p>Min Stack keeps, at each level, both the pushed value <em>and</em> the minimum of everything at or below it &mdash; so <code>getMin</code> is O(1) because the current minimum is always sitting right on top.</p>
+
+<figure>
+<svg viewBox="0 0 740 268" role="img" aria-label="Min stack storing a running minimum alongside each value">
+  <text class="capb" x="0" y="16">push order: −2, 0, −3, then pop</text>
+
+  <text class="cap" x="0" y="46">value</text>
+  <text class="cap t-good" x="200" y="46">min at or below</text>
+  <g>
+    <rect class="cell" x="0"   y="58" width="160" height="38" rx="5"/><text class="val" x="80" y="83" text-anchor="middle">−2</text>
+    <rect class="sv-good" x="200" y="58" width="160" height="38" rx="5"/><text class="val" x="280" y="83" text-anchor="middle">−2</text>
+    <text class="tiny" x="380" y="83">bottom</text>
+  </g>
+  <g>
+    <rect class="cell" x="0"   y="102" width="160" height="38" rx="5"/><text class="val" x="80" y="127" text-anchor="middle">0</text>
+    <rect class="sv-good" x="200" y="102" width="160" height="38" rx="5"/><text class="val" x="280" y="127" text-anchor="middle">−2</text>
+    <text class="tiny" x="380" y="127">min(0, −2) = −2</text>
+  </g>
+  <g>
+    <rect class="sv-acc" x="0"   y="146" width="160" height="38" rx="5"/><text class="val" x="80" y="171" text-anchor="middle">−3</text>
+    <rect class="sv-good" x="200" y="146" width="160" height="38" rx="5"/><text class="val" x="280" y="171" text-anchor="middle">−3</text>
+    <text class="tiny t-acc" x="380" y="171">top — getMin() reads this, O(1)</text>
+  </g>
+
+  <rect class="panel" x="0" y="200" width="740" height="66" rx="10"/>
+  <text class="cap" x="16" y="224"><tspan class="capb">Why not just track one min variable?</tspan> Because <tspan class="sv-mono">pop()</tspan> would then have no way to restore the</text>
+  <text class="cap" x="16" y="246">previous minimum without rescanning. Storing the min <tspan class="capb">per level</tspan> makes pop O(1) too: the answer</text>
+  <text class="cap" x="16" y="262">for the shorter stack was already computed when that level was pushed.</text>
+</svg>
+<figcaption><b>Min Stack.</b> The generalisable idea: if a query is expensive to recompute after a pop, store its answer <em>at each level</em> on the way in. Space goes from O(n) to O(2n) &mdash; still O(n) &mdash; and every operation becomes O(1).</figcaption>
+</figure>
+
+<h3>Process in a deliberate order</h3>
+
+<p>Car Fleet isn&rsquo;t obviously a stack problem until you sort cars by starting position <em>descending</em> and walk them &mdash; each car either joins the fleet ahead (gets absorbed) or forms a new fleet. That&rsquo;s a stack of fleet arrival-times where you pop/merge when a car would catch the one ahead.</p>
+
+<figure>
+<svg viewBox="0 0 740 280" role="img" aria-label="Car fleet: cars sorted by position descending, merging into fleets">
+  <text class="capb" x="0" y="16">target = 12 · position = [10, 8, 0, 5, 3], speed = [2, 4, 1, 1, 3]</text>
+  <text class="cap" x="0" y="38">sort by position descending, compute time-to-target = (target − position) / speed</text>
+
+  <!-- road -->
+  <line class="sv-line" x1="0" y1="110" x2="700" y2="110"/>
+  <line class="s-bad" x1="700" y1="86" x2="700" y2="134"/>
+  <text class="tiny t-bad" x="700" y="150" text-anchor="middle">target</text>
+
+  <g>
+    <rect class="sv-acc" x="20"  y="82" width="56" height="28" rx="4"/><text class="val" x="48"  y="102" text-anchor="middle">p0</text>
+    <rect class="sv-info" x="180" y="82" width="56" height="28" rx="4"/><text class="val" x="208" y="102" text-anchor="middle">p3</text>
+    <rect class="sv-info" x="300" y="82" width="56" height="28" rx="4"/><text class="val" x="328" y="102" text-anchor="middle">p5</text>
+    <rect class="sv-good" x="460" y="82" width="56" height="28" rx="4"/><text class="val" x="488" y="102" text-anchor="middle">p8</text>
+    <rect class="sv-good" x="580" y="82" width="56" height="28" rx="4"/><text class="val" x="608" y="102" text-anchor="middle">p10</text>
+  </g>
+  <text class="tiny" x="48"  y="74" text-anchor="middle">t=12</text>
+  <text class="tiny" x="208" y="74" text-anchor="middle">t=3</text>
+  <text class="tiny" x="328" y="74" text-anchor="middle">t=7</text>
+  <text class="tiny" x="488" y="74" text-anchor="middle">t=1</text>
+  <text class="tiny" x="608" y="74" text-anchor="middle">t=1</text>
+
+  <rect class="panel" x="0" y="168" width="740" height="106" rx="10"/>
+  <text class="capb" x="16" y="192">Walk from the car nearest the target, backwards</text>
+  <text class="cap" x="16" y="216">Push each car&#8217;s time. If the new car&#8217;s time is <tspan class="capb">&#8804; the time on top</tspan>, it would catch that fleet</text>
+  <text class="cap" x="16" y="238">before the target, so it merges — <tspan class="capb">don&#8217;t push it</tspan>. Otherwise it&#8217;s slower and forms its own fleet.</text>
+  <text class="cap t-good" x="16" y="262">The stack&#8217;s final height <tspan class="capb">is</tspan> the number of fleets. Sorting is O(n log n) and dominates.</text>
+</svg>
+<figcaption><b>Car Fleet.</b> The lesson generalises: sometimes the stack only becomes visible after you choose the right traversal order. If a problem feels almost-stack-shaped, ask whether processing it in reverse (or sorted) order makes the LIFO structure appear.</figcaption>
+</figure>
+
+<h3>Recursion uses the call stack &mdash; so &ldquo;generate all&rdquo; belongs here too</h3>
+
+<p>Generate Parentheses is really backtracking (an explicit stack of choices), included in this section because the balance rule &mdash; you can only add <code>)</code> when open count exceeds close count &mdash; is a stack-validity invariant. See <a href="../Backtracking/backtracking.html">Backtracking</a> for the full choose/explore/un-choose treatment.</p>
+
+<pre><code>def generateParenthesis(n):
+    res, path = [], []
+    def backtrack(open_count, close_count):
+        if len(path) == 2 * n:
+            res.append("".join(path)); return
+        if open_count &lt; n:                     # can always open while budget remains
+            path.append("("); backtrack(open_count + 1, close_count); path.pop()
+        if close_count &lt; open_count:           # can only close what is already open
+            path.append(")"); backtrack(open_count, close_count + 1); path.pop()
+    backtrack(0, 0)
+    return res
+</code></pre>
+
+<h2>Largest Rectangle in Histogram &mdash; the boss</h2>
+
+<p>Everything above converges here. Each bar wants to know: <em>how far left and right can I extend before I hit something shorter than me?</em> A monotonic increasing stack answers both at once, because the moment a bar is popped, both of its boundaries are known.</p>
+
+<figure>
+<svg viewBox="0 0 740 350" role="img" aria-label="Largest rectangle in histogram computed by popping a monotonic stack">
+  <text class="capb" x="0" y="16">heights = [2, 1, 5, 6, 2, 3]</text>
+
+  <line class="sv-line" x1="0" y1="220" x2="480" y2="220"/>
+  <g>
+    <rect class="cell"   x="10"  y="180" width="66" height="40"/><text class="tiny" x="43"  y="238" text-anchor="middle">0 · h=2</text>
+    <rect class="cell"   x="86"  y="200" width="66" height="20"/><text class="tiny" x="119" y="238" text-anchor="middle">1 · h=1</text>
+    <rect class="sv-acc" x="162" y="120" width="66" height="100"/><text class="tiny" x="195" y="238" text-anchor="middle">2 · h=5</text>
+    <rect class="sv-acc" x="238" y="100" width="66" height="120"/><text class="tiny" x="271" y="238" text-anchor="middle">3 · h=6</text>
+    <rect class="cell"   x="314" y="180" width="66" height="40"/><text class="tiny" x="347" y="238" text-anchor="middle">4 · h=2</text>
+    <rect class="cell"   x="390" y="160" width="66" height="60"/><text class="tiny" x="423" y="238" text-anchor="middle">5 · h=3</text>
+  </g>
+  <!-- best rectangle -->
+  <rect class="s-good" x="162" y="120" width="142" height="100" fill="none" stroke-dasharray="5 3"/>
+  <text class="cap t-good" x="233" y="112" text-anchor="middle">5 × 2 = 10 &#8592; the answer</text>
+
+  <rect class="panel" x="500" y="10" width="240" height="230" rx="10"/>
+  <text class="capb" x="514" y="34">At index 4 (h=2)</text>
+  <text class="cap" x="514" y="60">stack holds (start_index, height):</text>
+  <text class="cap sv-mono" x="514" y="82">[(0,2), (1,1), (2,5), (3,6)]</text>
+  <text class="cap t-acc" x="514" y="112">2 &lt; 6 &#8594; pop (3,6)</text>
+  <text class="cap" x="514" y="132">width = 4 − 3 = 1, area = 6</text>
+  <text class="cap t-acc" x="514" y="158">2 &lt; 5 &#8594; pop (2,5)</text>
+  <text class="cap" x="514" y="178">width = 4 − 2 = 2, area = <tspan class="capb t-good">10</tspan></text>
+  <text class="cap" x="514" y="204">2 &gt; 1 &#8594; stop. Push (2, 2) —</text>
+  <text class="cap" x="514" y="222">the new bar inherits index 2,</text>
+  <text class="tiny" x="514" y="238">since it can extend back that far.</text>
+
+  <rect class="panel" x="0" y="262" width="740" height="86" rx="10"/>
+  <text class="capb" x="16" y="286">The two boundaries, both free</text>
+  <text class="cap" x="16" y="310"><tspan class="capb">Right boundary:</tspan> the current bar — it&#8217;s the first one shorter, which is exactly why we&#8217;re popping.</text>
+  <text class="cap" x="16" y="332"><tspan class="capb">Left boundary:</tspan> the <tspan class="sv-mono">start_index</tspan> carried on the popped entry — inherited from every taller bar it displaced.</text>
+</svg>
+<figcaption><b>Largest Rectangle.</b> The &ldquo;inherit the start index&rdquo; step is the only genuinely subtle line. A taller bar being popped means the shorter incoming bar can extend left over that whole region, so it takes over the popped entry&rsquo;s starting index. Don&rsquo;t forget the final drain of whatever remains on the stack after the loop.</figcaption>
+</figure>
+
+<pre><code>def largestRectangleArea(heights):
+    stack = []                      # (start_index, height), heights increasing
+    best = 0
+    for i, h in enumerate(heights):
+        start = i
+        while stack and stack[-1][1] &gt; h:
+            idx, height = stack.pop()
+            best = max(best, height * (i - idx))
+            start = idx             # this bar can extend back to where the taller one began
+        stack.append((start, h))
+    for idx, height in stack:       # drain: these extend to the far right edge
+        best = max(best, height * (len(heights) - idx))
+    return best
+</code></pre>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Matching / balancing</b></td><td>Push openers, pop-and-check on closers, empty stack at the end means valid.</td><td>Valid Parentheses <span class="tag easy">easy</span></td></tr>
+<tr><td><b>2. Stack with augmented state</b></td><td>Each entry remembers the running minimum so all four operations are O(1). A class-design problem, not a one-off function.</td><td>Min Stack <span class="tag med">med</span></td></tr>
+<tr><td><b>3. Evaluation with a stack of operands</b></td><td>Push numbers; on an operator, pop the top two, apply, push the result. The stack <em>is</em> the running computation.</td><td>Evaluate Reverse Polish Notation <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Balance-constrained generation</b></td><td>Build strings by choosing <code>(</code> or <code>)</code> under the invariant that closes never exceed opens.</td><td>Generate Parentheses <span class="tag med">med</span></td></tr>
+<tr><td><b>5. Monotonic stack (next-greater family)</b></td><td>Keep a sorted stack; pop everything the current element resolves, computing each popped item&rsquo;s answer as it leaves. <b>The section&rsquo;s real payload.</b></td><td>Daily Temperatures <span class="tag med">med</span>, Car Fleet <span class="tag med">med</span>, Largest Rectangle in Histogram <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Valid Parentheses</b><span class="why">The canonical push/pop match. Handle all three failure modes.</span></li>
+<li><b>Min Stack</b><span class="why">Stack with extra bookkeeping — a design problem. Store the min per level, not in one variable.</span></li>
+<li><b>Evaluate Reverse Polish Notation</b><span class="why">Stack as a calculator. Watch operand order and truncation-toward-zero division.</span></li>
+<li><b>Generate Parentheses</b><span class="why">Balance invariant + backtracking. Two conditions govern the two choices.</span></li>
+<li><b>Daily Temperatures</b><span class="why">Your first monotonic stack — internalise &ldquo;the pop is the answer.&rdquo;</span></li>
+<li><b>Car Fleet</b><span class="why">A monotonic stack hiding behind a sort. The insight is the traversal order.</span></li>
+<li class="boss"><b>Largest Rectangle in Histogram</b><span class="why">The boss — monotonic stack computing widths on pop, plus the inherited start index and the final drain.</span></li>
+</ol>
+
+<p>By the time you reach Largest Rectangle in Histogram, the &ldquo;pop resolves the popped element&rsquo;s answer&rdquo; idea from Daily Temperatures will be the thing that makes the width computation make sense instead of looking like magic.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Stack holds</th></tr></thead>
+<tbody>
+<tr><td>Valid Parentheses</td><td>O(n)</td><td>O(n)</td><td>unmatched openers</td></tr>
+<tr><td>Min Stack</td><td>O(1) per op</td><td>O(n)</td><td>(value, min-so-far)</td></tr>
+<tr><td>Evaluate RPN</td><td>O(n)</td><td>O(n)</td><td>operands</td></tr>
+<tr><td>Generate Parentheses</td><td>O(4ⁿ/√n)</td><td>O(n) depth</td><td>call stack + path</td></tr>
+<tr><td>Daily Temperatures</td><td>O(n)</td><td>O(n)</td><td>indices, decreasing temps</td></tr>
+<tr><td>Car Fleet</td><td>O(n log n)</td><td>O(n)</td><td>fleet arrival times</td></tr>
+<tr><td>Largest Rectangle</td><td>O(n)</td><td>O(n)</td><td>(start index, height), increasing</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — popping an empty stack</span>
+  <p>Always guard: <code>if not stack or stack.pop() != expected</code>. A closer with no opener is a real test case, not a corner case.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — forgetting the leftovers</span>
+  <p>Both Valid Parentheses (unclosed openers) and Largest Rectangle (bars that reach the right edge) need an explicit check <em>after</em> the loop ends.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — <code>&lt;</code> vs <code>&lt;=</code> in the monotonic pop</span>
+  <p>With equal heights, popping on <code>&lt;=</code> versus <code>&lt;</code> changes whether equal-valued neighbours merge. For Daily Temperatures either works; for Largest Rectangle, popping on strict <code>&gt;</code> and letting equal bars inherit the earlier start index is what keeps equal-height runs correct.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — using <code>pop(0)</code></span>
+  <p><code>list.pop(0)</code> is O(n) because it shifts everything. That&rsquo;s a queue operation; use <code>collections.deque</code> if you genuinely need one.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Name the invariant, then name the pop</span>
+  <p>When you suspect a monotonic stack, write the invariant before coding &mdash; <code># stack holds indices, temps decreasing from bottom to top</code> &mdash; and then, for the pop step, write what the answer <em>is</em> at the moment you pop. Naming what a pop <em>means</em> is the whole trick of this section.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

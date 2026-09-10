@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NeetCode 150 — Patterns &amp; Templates</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="" data-root=".">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<div class="hero">
+<h1>NeetCode 150<br>Patterns &amp; Templates</h1>
+<p class="deck">Eleven topic guides built around one question each: <em>what is the single mental habit that makes this whole section fall?</em> Every page walks the templates, draws the mechanism, maps the pattern groups to the actual problems, and names the traps.</p>
+</div>
+
+<div class="facts">
+  <div class="fact"><div class="k">Topics</div><div class="v">11</div></div>
+  <div class="fact"><div class="k">Problems covered</div><div class="v">~100</div></div>
+  <div class="fact"><div class="k">Revision sets</div><div class="v">3 + themed</div></div>
+  <div class="fact"><div class="k">Language</div><div class="v">Python 3</div></div>
+</div>
+
+<h2 id="how-to-use-this">How to use this</h2>
+
+<p class="lead-in">Each topic page is the written companion to the <code>practice.py</code> stub file in the same folder. The intended loop is simple, and the order matters.</p>
+
+<figure>
+<svg viewBox="0 0 740 250" role="img" aria-label="The study loop: read the habit, attempt the problems in order, then revise with mixed sets">
+  <g>
+    <rect class="sv-acc" x="0" y="40" width="166" height="96" rx="10"/>
+    <text class="capb t-acc" x="14" y="64">1 · Read the habit</text>
+    <text class="tiny" x="14" y="88">The one question that</text>
+    <text class="tiny" x="14" y="106">unlocks the section,</text>
+    <text class="tiny" x="14" y="124">plus the 30-second check.</text>
+  </g>
+  <path class="s-acc" d="M172 88 L184 88"/><path class="f-acc" d="M190 88 l-8,-5 l0,10 z"/>
+  <g>
+    <rect class="sv-info" x="190" y="40" width="166" height="96" rx="10"/>
+    <text class="capb t-info" x="204" y="64">2 · Work the order</text>
+    <text class="tiny" x="204" y="88">Problems are sequenced</text>
+    <text class="tiny" x="204" y="106">so each installs what</text>
+    <text class="tiny" x="204" y="124">the next one assumes.</text>
+  </g>
+  <path class="s-acc" d="M362 88 L374 88"/><path class="f-acc" d="M380 88 l-8,-5 l0,10 z"/>
+  <g>
+    <rect class="sv-good" x="380" y="40" width="166" height="96" rx="10"/>
+    <text class="capb t-good" x="394" y="64">3 · Name the trap</text>
+    <text class="tiny" x="394" y="88">When something fails,</text>
+    <text class="tiny" x="394" y="106">find it in Traps — most</text>
+    <text class="tiny" x="394" y="124">bugs are one of five.</text>
+  </g>
+  <path class="s-acc" d="M552 88 L564 88"/><path class="f-acc" d="M570 88 l-8,-5 l0,10 z"/>
+  <g>
+    <rect class="sv-warn" x="570" y="40" width="166" height="96" rx="10"/>
+    <text class="capb t-warn" x="584" y="64">4 · Interleave</text>
+    <text class="tiny" x="584" y="88">Mixed sets, to practise</text>
+    <text class="tiny" x="584" y="106">CHOOSING the pattern,</text>
+    <text class="tiny" x="584" y="124">not executing it.</text>
+  </g>
+
+  <path class="s-warn dash" d="M653 144 L653 176 L83 176 L83 146"/>
+  <path class="f-warn" d="M83 138 l-5,9 l10,0 z"/>
+  <text class="cap t-warn" x="368" y="196" text-anchor="middle">whatever the mixed set exposes, re-read that topic&#8217;s habit — not its solutions</text>
+
+  <text class="tiny" x="0" y="236">Every page ends with a one-line practical tip: a comment to write <tspan class="capb">before</tspan> the code. Those tips are the most portable thing here.</text>
+</svg>
+<figcaption><b>Read → attempt → diagnose → interleave.</b> The pages are deliberately written to be re-read after a failure rather than skimmed before an attempt.</figcaption>
+</figure>
+
+<h2 id="the-topics">The topics</h2>
+
+<div class="cards">
+
+  <a class="card" href="ArraysHashing/arrays_hashing.html">
+    <div class="idx">01 · FOUNDATION</div>
+    <h3>Arrays &amp; Hashing</h3>
+    <p>Trade memory for time. Turn the inner loop into an O(1) lookup — the reflex every later section quietly assumes.</p>
+    <div class="meta"><span>9 problems</span><span>set · dict</span></div>
+  </a>
+
+  <a class="card" href="TwoPointers/two_pointers.html">
+    <div class="idx">02 · FOUNDATION</div>
+    <h3>Two Pointers</h3>
+    <p>O(n²) → O(n) with no extra memory. Which pointer moves, and why is discarding what it passes provably safe?</p>
+    <div class="meta"><span>5 problems</span><span>O(1) space</span></div>
+  </a>
+
+  <a class="card" href="SlidingWindow/sliding_window.html">
+    <div class="idx">03 · FOUNDATION</div>
+    <h3>Sliding Window</h3>
+    <p>Best or valid contiguous stretch. The pointers are trivial; naming the shrink condition is the whole problem.</p>
+    <div class="meta"><span>6 problems</span><span>contiguous</span></div>
+  </a>
+
+  <a class="card" href="Stack/stack.html">
+    <div class="idx">04 · STRUCTURE</div>
+    <h3>Stack</h3>
+    <p>Remember in order, resolve in reverse. Matching, RPN, and the monotonic stack where the pop <em>is</em> the answer.</p>
+    <div class="meta"><span>7 problems</span><span>LIFO</span></div>
+  </a>
+
+  <a class="card" href="BinarySearch/binary_search.html">
+    <div class="idx">05 · SEARCH</div>
+    <h3>Binary Search</h3>
+    <p>Halve any monotonic space — a rotated array, a grid, or a range of answers with no array in sight.</p>
+    <div class="meta"><span>7 problems</span><span>O(log n)</span></div>
+  </a>
+
+  <a class="card" href="LinkedList/linked_list.html">
+    <div class="idx">06 · STRUCTURE</div>
+    <h3>Linked Lists</h3>
+    <p>Four maneuvers solve everything: reverse, dummy head, fast/slow, and the fixed gap. Save before you overwrite.</p>
+    <div class="meta"><span>11 problems</span><span>pointer surgery</span></div>
+  </a>
+
+  <a class="card" href="Tree/tree.html">
+    <div class="idx">07 · STRUCTURE</div>
+    <h3>Binary Trees</h3>
+    <p>The recursive contract. Decide what to pass down and what to bubble up, then trust the recursion.</p>
+    <div class="meta"><span>15 problems</span><span>DFS · BFS</span></div>
+  </a>
+
+  <a class="card" href="Heap/heap.html">
+    <div class="idx">08 · STRUCTURE</div>
+    <h3>Heap / Priority Queue</h3>
+    <p>The extreme element, repeatedly, on data that keeps changing. Bounded size-k heaps and the two-heap median.</p>
+    <div class="meta"><span>7 problems</span><span>heapq</span></div>
+  </a>
+
+  <a class="card" href="Backtracking/backtracking.html">
+    <div class="idx">09 · SEARCH</div>
+    <h3>Backtracking</h3>
+    <p>Choose → explore → un-choose. Nine problems, one template, and a different definition of &ldquo;choice&rdquo; each time.</p>
+    <div class="meta"><span>9 problems</span><span>decision tree</span></div>
+  </a>
+
+  <a class="card" href="Graphs/graphs.html">
+    <div class="idx">10 · GRAPHS</div>
+    <h3>Graphs</h3>
+    <p>A way of moving, not a structure. Flood fill, multi-source BFS, topological sort, and union-find.</p>
+    <div class="meta"><span>13 problems</span><span>O(V + E)</span></div>
+  </a>
+
+  <a class="card" href="AdvancedGraphs/advanced_graphs.html">
+    <div class="idx">11 · GRAPHS</div>
+    <h3>Advanced Graphs</h3>
+    <p>Six named algorithms in disguise. Classification in thirty seconds; the templates are short once you have the label.</p>
+    <div class="meta"><span>6 problems</span><span>Dijkstra · MST</span></div>
+  </a>
+
+  <a class="card" href="practice_sets.html">
+    <div class="idx">★ · REVISION</div>
+    <h3>Mixed Revision Sets</h3>
+    <p>Cross-topic sittings that train the step drilling can&rsquo;t: reading a cold problem and picking the tool.</p>
+    <div class="meta"><span>27 problems</span><span>interleaved</span></div>
+  </a>
+
+</div>
+
+<h2 id="how-the-sections-build-on-each-other">How the sections build on each other</h2>
+
+<figure>
+<svg viewBox="0 0 740 420" role="img" aria-label="Dependency map showing which topics reuse ideas from earlier ones">
+  <text class="capb" x="0" y="16">Arrows mean &#8220;reuses an idea from&#8221; — not a strict prerequisite, but a strong hint about order</text>
+
+  <!-- row 1: foundations -->
+  <rect class="sv-acc" x="20"  y="40" width="150" height="46" rx="8"/><text class="val" x="95"  y="68" text-anchor="middle">Arrays &amp; Hashing</text>
+  <rect class="sv-acc" x="200" y="40" width="150" height="46" rx="8"/><text class="val" x="275" y="68" text-anchor="middle">Two Pointers</text>
+
+  <!-- row 2 -->
+  <rect class="sv-info" x="200" y="122" width="150" height="46" rx="8"/><text class="val" x="275" y="150" text-anchor="middle">Sliding Window</text>
+  <rect class="sv-info" x="380" y="122" width="150" height="46" rx="8"/><text class="val" x="455" y="150" text-anchor="middle">Binary Search</text>
+  <rect class="sv-info" x="20"  y="122" width="150" height="46" rx="8"/><text class="val" x="95"  y="150" text-anchor="middle">Stack</text>
+
+  <!-- row 3 -->
+  <rect class="sv-good" x="20"  y="204" width="150" height="46" rx="8"/><text class="val" x="95"  y="232" text-anchor="middle">Linked Lists</text>
+  <rect class="sv-good" x="200" y="204" width="150" height="46" rx="8"/><text class="val" x="275" y="232" text-anchor="middle">Binary Trees</text>
+  <rect class="sv-good" x="380" y="204" width="150" height="46" rx="8"/><text class="val" x="455" y="232" text-anchor="middle">Heap</text>
+  <rect class="sv-good" x="560" y="204" width="160" height="46" rx="8"/><text class="val" x="640" y="232" text-anchor="middle">Backtracking</text>
+
+  <!-- row 4 -->
+  <rect class="sv-warn" x="200" y="286" width="150" height="46" rx="8"/><text class="val" x="275" y="314" text-anchor="middle">Graphs</text>
+  <rect class="sv-warn" x="380" y="286" width="180" height="46" rx="8"/><text class="val" x="470" y="314" text-anchor="middle">Advanced Graphs</text>
+
+  <!-- edges -->
+  <path class="s-acc" d="M275 90 L275 116"/><path class="f-acc" d="M275 122 l-5,-9 l10,0 z"/>
+  <path class="s-acc" d="M170 63 L196 63"/><path class="f-acc" d="M202 63 l-9,-5 l0,10 z"/>
+  <path class="s-info" d="M95 172 L95 200"/><path class="f-info" d="M95 206 l-5,-9 l10,0 z"/>
+  <path class="s-info" d="M240 172 L200 200"/><path class="f-info" d="M195 204 l10,-1 l-4,-9 z"/>
+  <path class="s-info" d="M275 172 L275 200"/><path class="f-info" d="M275 206 l-5,-9 l10,0 z"/>
+  <path class="s-good" d="M275 254 L275 282"/><path class="f-good" d="M275 288 l-5,-9 l10,0 z"/>
+  <path class="s-good" d="M455 254 L470 282"/><path class="f-good" d="M472 288 l-9,-4 l8,-6 z"/>
+  <path class="s-good" d="M615 254 L300 288"/>
+  <path class="s-warn" d="M355 309 L376 309"/><path class="f-warn" d="M382 309 l-9,-5 l0,10 z"/>
+
+  <text class="tiny t-acc" x="182" y="56">shared &#8220;sweep once&#8221; instinct</text>
+  <text class="tiny t-info" x="290" y="112">same pointers, same direction</text>
+  <text class="tiny t-info" x="106" y="196">monotonic deque ⇄ monotonic stack</text>
+  <text class="tiny t-good" x="286" y="278">tree DFS generalises to graph DFS</text>
+  <text class="tiny t-good" x="486" y="278">heap → Dijkstra &amp; Prim</text>
+  <text class="tiny" x="330" y="272">grid backtracking ⇄ flood fill</text>
+
+  <rect class="panel" x="0" y="356" width="740" height="60" rx="10"/>
+  <text class="cap" x="16" y="380"><tspan class="capb">If you only do four:</tspan> Arrays &amp; Hashing, Two Pointers, Binary Trees, Graphs. Those four carry the ideas the rest reuse —</text>
+  <text class="cap" x="16" y="402">hash lookups, disciplined pointer sweeps, recursion with a contract, and traversal with a visited set.</text>
+</svg>
+<figcaption><b>The dependency map.</b> Nothing here is a hard prerequisite &mdash; but doing Stack before Sliding Window Maximum, or Heap before Advanced Graphs, means the &ldquo;new&rdquo; technique is one you already own.</figcaption>
+</figure>
+
+<h2 id="what-every-page-contains">What every page contains</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Section</th><th>What it&rsquo;s for</th></tr></thead>
+<tbody>
+<tr><td><b>The one habit</b></td><td>The single question to ask before writing any code in that topic. If you remember one thing per page, this is it.</td></tr>
+<tr><td><b>The 30-second mental check</b></td><td>A short table mapping what the problem is asking to which shape or structure you should reach for.</td></tr>
+<tr><td><b>Templates</b></td><td>The reusable code skeleton, annotated — with the boundary conventions and loop shapes spelled out.</td></tr>
+<tr><td><b>Diagrams</b></td><td>The mechanism drawn out: traced walkthroughs, before/after states, and why the algorithm is correct rather than just what it does.</td></tr>
+<tr><td><b>Pattern groups</b></td><td>Each NeetCode problem in the section, grouped by the move it needs.</td></tr>
+<tr><td><b>Suggested order</b></td><td>A sequence where each problem installs a skill the next one assumes. Rarely the same as NeetCode&rsquo;s listed order.</td></tr>
+<tr><td><b>Complexity cheat sheet</b></td><td>Time, space, and the key structure per problem — the table to review the morning of an interview.</td></tr>
+<tr><td><b>Traps</b></td><td>The four or five bugs that actually cost people this section, with the symptom each one produces.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="repo-layout">Repo layout</h2>
+
+<pre class="no-hl"><code>data-structures/
+├── index.html                  ← you are here
+├── practice_sets.html
+├── assets/                     shared stylesheet + behaviour
+├── ArraysHashing/
+│   ├── arrays_hashing.md       the source notes
+│   ├── arrays_hashing.html     the illustrated version
+│   └── practice.py             self-checking stubs
+├── TwoPointers/  …
+├── SlidingWindow/  …
+├── Stack/  ·  BinarySearch/  ·  LinkedList/
+├── Tree/  ·  Heap/  ·  Backtracking/
+├── Graphs/  ·  AdvancedGraphs/
+├── practice_helpers.py         shared tree / linked-list builders
+└── practice_set_1.py … _3.py   mixed revision sets
+</code></pre>
+
+<p style="color:var(--ink-faint);font-size:14px;margin-top:40px">Each HTML page is generated from the markdown beside it and adds worked walkthroughs, diagrams, complexity tables, and trap lists. The markdown remains the canonical short version.</p>
+
+</article>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

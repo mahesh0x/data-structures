@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sliding Window — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="window" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Sliding Window</h1>
+<p class="deck">The pattern for &ldquo;find the best or valid <em>contiguous</em> stretch.&rdquo; The pointers are trivial; the entire difficulty is bookkeeping &mdash; keeping validity as one number you can update in O(1).</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">6</div></div>
+  <div class="fact"><div class="k">Typical time</div><div class="v">O(n)</div></div>
+  <div class="fact"><div class="k">Key word</div><div class="v" style="font-size:14px">contiguous</div></div>
+  <div class="fact"><div class="k">Relation</div><div class="v" style="font-size:14px">two pointers, same&nbsp;direction</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>What makes it its own section</h2>
+
+<p class="lead-in">Sliding Window is really a specialised two-pointer technique where both pointers move in the <em>same</em> direction and the region between them &mdash; the window &mdash; is the thing you&rsquo;re reasoning about.</p>
+
+<p>The reason it deserves its own section is that the hard part isn&rsquo;t the pointers. It&rsquo;s knowing exactly <strong>when the window is valid</strong>, and updating your running state in O(1) as the window&rsquo;s edges move, so the whole thing stays O(n) instead of collapsing back into an O(n·k) recount.</p>
+
+<div class="callout note">
+  <span class="ct">The trigger word is &ldquo;contiguous&rdquo;</span>
+  <p>Subarray, substring, consecutive stretch, window of size k. If the problem would still make sense after shuffling the input, it is <em>not</em> a sliding-window problem &mdash; that&rsquo;s a hashing or sorting problem. Sliding window exploits adjacency, and nothing else.</p>
+</div>
+
+<h2>The one idea: name your shrink condition</h2>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;My <code>right</code> pointer always moves forward to include new elements &mdash; but under what condition do I move <code>left</code> forward to <em>evict</em> elements from the left?&rdquo;</p>
+</div>
+
+<p>That shrink condition <em>is</em> the problem. If you can state it in one sentence before coding, you&rsquo;re done thinking. If you can&rsquo;t, you don&rsquo;t yet know what makes the window valid &mdash; and that, not the loop, is the actual problem.</p>
+
+<figure>
+<svg viewBox="0 0 740 386" role="img" aria-label="A window growing right and shrinking from the left across four frames">
+  <text class="capb" x="0" y="16">s = "abcabcbb" — longest substring without repeating characters</text>
+
+  <!-- frame 1 -->
+  <text class="cap" x="0" y="52">frame 1</text>
+  <g transform="translate(80,32)">
+    <rect class="sv-acc" x="0"  y="0" width="46" height="38" rx="5"/><text class="val" x="23"  y="25" text-anchor="middle">a</text>
+    <rect class="sv-acc" x="50" y="0" width="46" height="38" rx="5"/><text class="val" x="73"  y="25" text-anchor="middle">b</text>
+    <rect class="sv-acc" x="100" y="0" width="46" height="38" rx="5"/><text class="val" x="123" y="25" text-anchor="middle">c</text>
+    <rect class="cell" x="150" y="0" width="46" height="38" rx="5"/><text class="val" x="173" y="25" text-anchor="middle">a</text>
+    <rect class="cell" x="200" y="0" width="46" height="38" rx="5"/><text class="val" x="223" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="250" y="0" width="46" height="38" rx="5"/><text class="val" x="273" y="25" text-anchor="middle">c</text>
+    <rect class="cell" x="300" y="0" width="46" height="38" rx="5"/><text class="val" x="323" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="350" y="0" width="46" height="38" rx="5"/><text class="val" x="373" y="25" text-anchor="middle">b</text>
+  </g>
+  <text class="cap" x="500" y="50">window "abc" — <tspan class="t-good">valid</tspan>, width 3</text>
+  <text class="tiny" x="500" y="66">best = 3</text>
+
+  <!-- frame 2 -->
+  <text class="cap" x="0" y="122">frame 2</text>
+  <g transform="translate(80,102)">
+    <rect class="sv-bad" x="0"  y="0" width="46" height="38" rx="5"/><text class="val" x="23"  y="25" text-anchor="middle">a</text>
+    <rect class="sv-acc" x="50" y="0" width="46" height="38" rx="5"/><text class="val" x="73"  y="25" text-anchor="middle">b</text>
+    <rect class="sv-acc" x="100" y="0" width="46" height="38" rx="5"/><text class="val" x="123" y="25" text-anchor="middle">c</text>
+    <rect class="sv-bad" x="150" y="0" width="46" height="38" rx="5"/><text class="val" x="173" y="25" text-anchor="middle">a</text>
+    <rect class="cell" x="200" y="0" width="46" height="38" rx="5"/><text class="val" x="223" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="250" y="0" width="46" height="38" rx="5"/><text class="val" x="273" y="25" text-anchor="middle">c</text>
+    <rect class="cell" x="300" y="0" width="46" height="38" rx="5"/><text class="val" x="323" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="350" y="0" width="46" height="38" rx="5"/><text class="val" x="373" y="25" text-anchor="middle">b</text>
+  </g>
+  <text class="cap t-bad" x="500" y="120">right took 'a' — duplicate!</text>
+  <text class="tiny" x="500" y="136">window is now INVALID</text>
+
+  <!-- frame 3 -->
+  <text class="cap" x="0" y="192">frame 3</text>
+  <g transform="translate(80,172)">
+    <rect class="cell" x="0"  y="0" width="46" height="38" rx="5"/><text class="val" x="23"  y="25" text-anchor="middle">a</text>
+    <rect class="sv-acc" x="50" y="0" width="46" height="38" rx="5"/><text class="val" x="73"  y="25" text-anchor="middle">b</text>
+    <rect class="sv-acc" x="100" y="0" width="46" height="38" rx="5"/><text class="val" x="123" y="25" text-anchor="middle">c</text>
+    <rect class="sv-acc" x="150" y="0" width="46" height="38" rx="5"/><text class="val" x="173" y="25" text-anchor="middle">a</text>
+    <rect class="cell" x="200" y="0" width="46" height="38" rx="5"/><text class="val" x="223" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="250" y="0" width="46" height="38" rx="5"/><text class="val" x="273" y="25" text-anchor="middle">c</text>
+    <rect class="cell" x="300" y="0" width="46" height="38" rx="5"/><text class="val" x="323" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="350" y="0" width="46" height="38" rx="5"/><text class="val" x="373" y="25" text-anchor="middle">b</text>
+  </g>
+  <text class="cap t-good" x="500" y="190">left evicted 'a' — repaired</text>
+  <text class="tiny" x="500" y="206">window "bca", width 3, best stays 3</text>
+  <path class="s-acc" d="M96 232 L146 232"/><path class="f-acc" d="M154 232 l-9,-5 l0,10 z"/>
+  <text class="tiny t-acc" x="100" y="248">left moved right</text>
+
+  <!-- frame 4 -->
+  <text class="cap" x="0" y="292">frame 4</text>
+  <g transform="translate(80,272)">
+    <rect class="cell" x="0"  y="0" width="46" height="38" rx="5"/><text class="val" x="23"  y="25" text-anchor="middle">a</text>
+    <rect class="cell" x="50" y="0" width="46" height="38" rx="5"/><text class="val" x="73"  y="25" text-anchor="middle">b</text>
+    <rect class="sv-acc" x="100" y="0" width="46" height="38" rx="5"/><text class="val" x="123" y="25" text-anchor="middle">c</text>
+    <rect class="sv-acc" x="150" y="0" width="46" height="38" rx="5"/><text class="val" x="173" y="25" text-anchor="middle">a</text>
+    <rect class="sv-acc" x="200" y="0" width="46" height="38" rx="5"/><text class="val" x="223" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="250" y="0" width="46" height="38" rx="5"/><text class="val" x="273" y="25" text-anchor="middle">c</text>
+    <rect class="cell" x="300" y="0" width="46" height="38" rx="5"/><text class="val" x="323" y="25" text-anchor="middle">b</text>
+    <rect class="cell" x="350" y="0" width="46" height="38" rx="5"/><text class="val" x="373" y="25" text-anchor="middle">b</text>
+  </g>
+  <text class="cap" x="500" y="290">grow again — "cab", width 3</text>
+
+  <text class="cap" x="0" y="346"><tspan class="capb">Total work is O(n), not O(n²):</tspan> <tspan class="sv-mono">right</tspan> advances exactly n times over the whole run, and</text>
+  <text class="cap" x="0" y="366"><tspan class="sv-mono">left</tspan> never goes backward, so it also advances at most n times. Two monotone pointers, 2n steps.</text>
+</svg>
+<figcaption><b>Grow, break, repair, grow.</b> The <code>while</code> loop that shrinks looks nested inside the <code>for</code> loop that grows, but it is amortised: <code>left</code> only ever moves forward, so across the whole run both pointers together take at most 2n steps.</figcaption>
+</figure>
+
+<h2>The two shapes</h2>
+
+<div class="two-col">
+<div>
+<h4>Variable size</h4>
+<p style="font-size:15px">Grow <code>right</code> greedily; the moment the window breaks a constraint, advance <code>left</code> to repair it.</p>
+<p style="font-size:15px"><b>Used by:</b> Longest Substring Without Repeating, Longest Repeating Character Replacement, Minimum Window Substring.</p>
+</div>
+<div>
+<h4>Fixed size</h4>
+<p style="font-size:15px">Size <code>k</code> is given. <code>right</code> and <code>left</code> move together keeping constant width; add the entering element, remove the leaving one.</p>
+<p style="font-size:15px"><b>Used by:</b> Permutation in String, Sliding Window Maximum.</p>
+</div>
+</div>
+
+<div class="code-label">variable-size template</div>
+<pre><code>left = 0
+state = {}                       # whatever you need to test validity in O(1)
+best = 0
+for right in range(len(s)):
+    # add s[right] to state
+    while window_is_invalid(state):
+        # remove s[left] from state
+        left += 1
+    best = max(best, right - left + 1)   # or min, for "shortest valid window"
+return best
+</code></pre>
+
+<div class="code-label">fixed-size template</div>
+<pre><code>for right in range(len(nums)):
+    # add nums[right]
+    if right &gt;= k:
+        # remove nums[right - k]  (the element falling out of the left edge)
+    if right &gt;= k - 1:
+        # window [right-k+1 .. right] is full — record its answer
+</code></pre>
+
+<div class="callout watch">
+  <span class="ct">The single subtlety that flips the template</span>
+  <p>For <b>&ldquo;longest valid&rdquo;</b> you record the answer <em>after</em> repairing &mdash; the window is only legal once the while-loop exits.<br>
+  For <b>&ldquo;shortest valid&rdquo;</b> (Minimum Window Substring) you record <em>while</em> the window is valid, and keep shrinking to try to make it even smaller. The record statement lives <em>inside</em> the while loop, not after it.</p>
+</div>
+
+<figure>
+<svg viewBox="0 0 740 250" role="img" aria-label="Where the answer is recorded differs between longest-valid and shortest-valid problems">
+  <rect class="sv-good" x="0" y="10" width="356" height="228" rx="10"/>
+  <text class="capb t-good" x="18" y="36">LONGEST valid window</text>
+  <text class="cap sv-mono" x="18" y="66">for right in ...:</text>
+  <text class="cap sv-mono" x="34" y="88">add s[right]</text>
+  <text class="cap sv-mono" x="34" y="110">while INVALID:</text>
+  <text class="cap sv-mono" x="50" y="132">remove s[left]; left += 1</text>
+  <text class="cap sv-mono t-good" x="34" y="154">best = max(best, width)</text>
+  <text class="tiny t-good" x="34" y="174">↑ AFTER the loop — only now is it legal</text>
+  <text class="cap" x="18" y="204">Grow greedily, repair when broken,</text>
+  <text class="cap" x="18" y="224">measure the repaired window.</text>
+
+  <rect class="sv-info" x="384" y="10" width="356" height="228" rx="10"/>
+  <text class="capb t-info" x="402" y="36">SHORTEST valid window</text>
+  <text class="cap sv-mono" x="402" y="66">for right in ...:</text>
+  <text class="cap sv-mono" x="418" y="88">add s[right]</text>
+  <text class="cap sv-mono" x="418" y="110">while VALID:</text>
+  <text class="cap sv-mono t-info" x="434" y="132">best = min(best, width)</text>
+  <text class="cap sv-mono" x="434" y="154">remove s[left]; left += 1</text>
+  <text class="tiny t-info" x="418" y="174">↑ INSIDE the loop — shrink while still legal</text>
+  <text class="cap" x="402" y="204">Grow until it covers, then squeeze</text>
+  <text class="cap" x="402" y="224">from the left as far as it will go.</text>
+</svg>
+<figcaption><b>Same loop, mirrored.</b> Getting this one placement wrong is the most common sliding-window bug &mdash; the code runs, produces plausible numbers, and is silently wrong on half the test cases.</figcaption>
+</figure>
+
+<h2>Techniques you&rsquo;ll reuse</h2>
+
+<h3>1. Keep a frequency map of the current window</h3>
+
+<p>Most string-window problems track counts of characters currently inside <code>[left, right]</code>. Growing adds one; shrinking subtracts one (and deletes the key when it hits zero, so <code>len(map)</code> means &ldquo;distinct characters in the window&rdquo;). Validity is a check against that map.</p>
+
+<h3>2. Track validity as a single number, not a rescan</h3>
+
+<p>This is <em>the</em> move that keeps sliding window O(n). Don&rsquo;t recompute the window&rsquo;s property from scratch each step &mdash; maintain it incrementally.</p>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Longest repeating character replacement: validity as window size minus max frequency">
+  <text class="capb" x="0" y="16">s = "AABABBA", k = 2 replacements allowed</text>
+
+  <g>
+    <rect class="sv-acc" x="0"   y="36" width="64" height="42" rx="6"/><text class="val" x="32"  y="63" text-anchor="middle">A</text>
+    <rect class="sv-acc" x="68"  y="36" width="64" height="42" rx="6"/><text class="val" x="100" y="63" text-anchor="middle">A</text>
+    <rect class="sv-acc" x="136" y="36" width="64" height="42" rx="6"/><text class="val" x="168" y="63" text-anchor="middle">B</text>
+    <rect class="sv-acc" x="204" y="36" width="64" height="42" rx="6"/><text class="val" x="236" y="63" text-anchor="middle">A</text>
+    <rect class="cell"   x="272" y="36" width="64" height="42" rx="6"/><text class="val" x="304" y="63" text-anchor="middle">B</text>
+    <rect class="cell"   x="340" y="36" width="64" height="42" rx="6"/><text class="val" x="372" y="63" text-anchor="middle">B</text>
+    <rect class="cell"   x="408" y="36" width="64" height="42" rx="6"/><text class="val" x="440" y="63" text-anchor="middle">A</text>
+  </g>
+  <path class="s-acc" d="M0 90 L268 90"/>
+  <text class="cap t-acc" x="134" y="110" text-anchor="middle">window of width 4</text>
+
+  <rect class="panel" x="0" y="128" width="740" height="88" rx="10"/>
+  <text class="cap" x="16" y="154">counts in window: <tspan class="sv-mono">{A: 3, B: 1}</tspan>   &#8594;   <tspan class="sv-mono">max_freq = 3</tspan></text>
+  <text class="cap" x="16" y="180">characters that would need replacing = <tspan class="sv-mono">window_size − max_freq</tspan> = 4 − 3 = <tspan class="capb">1</tspan></text>
+  <text class="cap t-good" x="16" y="206">1 &#8804; k = 2, so the window is <tspan class="capb">valid</tspan>. No shrink needed; keep growing.</text>
+
+  <text class="capb" x="0" y="244">Why one number replaces a rescan</text>
+  <text class="cap" x="0" y="268">The best you can do inside any window is keep its most common character and replace the rest.</text>
+  <text class="cap" x="0" y="288">So validity is entirely captured by <tspan class="sv-mono">size − max_freq &#8804; k</tspan> — a single subtraction, no counting loop.</text>
+</svg>
+<figcaption><b>Character Replacement, compressed.</b> The famous trick here: you never need to <em>decrease</em> <code>max_freq</code> when shrinking. A stale-high <code>max_freq</code> can only make the window look valid when it isn&rsquo;t &mdash; but since we only ever care about the <em>largest</em> window ever seen, a stale value never produces a larger answer than the true optimum. Most people accept this after seeing it fail to break anything; it&rsquo;s worth stating out loud as a deliberate choice, not an accident.</figcaption>
+</figure>
+
+<p>Permutation in String uses the same principle differently: keep a <code>matches</code> counter of how many of the 26 letters have <em>exactly</em> the right count, and update it by ±1 as characters enter and leave. Validity becomes an O(1) <code>matches == 26</code> check instead of comparing two 26-element arrays every step.</p>
+
+<h3>3. A monotonic deque for window max/min</h3>
+
+<p>Sliding Window Maximum is the odd one out: a frequency map won&rsquo;t give you the max in O(1). Instead keep a deque of <em>indices</em> whose values are decreasing; the front is always the current max.</p>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="Monotonic deque maintaining the maximum of a sliding window">
+  <text class="capb" x="0" y="16">nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3</text>
+
+  <!-- array -->
+  <g>
+    <rect class="cell" x="0"   y="34" width="80" height="40" rx="5"/><text class="val" x="40"  y="60" text-anchor="middle">1</text><text class="idx" x="40" y="90" text-anchor="middle">0</text>
+    <rect class="cell" x="84"  y="34" width="80" height="40" rx="5"/><text class="val" x="124" y="60" text-anchor="middle">3</text><text class="idx" x="124" y="90" text-anchor="middle">1</text>
+    <rect class="sv-acc" x="168" y="34" width="80" height="40" rx="5"/><text class="val" x="208" y="60" text-anchor="middle">-1</text><text class="idx" x="208" y="90" text-anchor="middle">2</text>
+    <rect class="sv-acc" x="252" y="34" width="80" height="40" rx="5"/><text class="val" x="292" y="60" text-anchor="middle">-3</text><text class="idx" x="292" y="90" text-anchor="middle">3</text>
+    <rect class="sv-acc" x="336" y="34" width="80" height="40" rx="5"/><text class="val" x="376" y="60" text-anchor="middle">5</text><text class="idx" x="376" y="90" text-anchor="middle">4</text>
+    <rect class="cell" x="420" y="34" width="80" height="40" rx="5"/><text class="val" x="460" y="60" text-anchor="middle">3</text><text class="idx" x="460" y="90" text-anchor="middle">5</text>
+    <rect class="cell" x="504" y="34" width="80" height="40" rx="5"/><text class="val" x="544" y="60" text-anchor="middle">6</text><text class="idx" x="544" y="90" text-anchor="middle">6</text>
+    <rect class="cell" x="588" y="34" width="80" height="40" rx="5"/><text class="val" x="628" y="60" text-anchor="middle">7</text><text class="idx" x="628" y="90" text-anchor="middle">7</text>
+  </g>
+  <text class="tiny t-acc" x="292" y="108" text-anchor="middle">current window [2..4]</text>
+
+  <!-- deque -->
+  <text class="capb" x="0" y="146">deque of indices, values decreasing front → back</text>
+  <g>
+    <rect class="sv-good" x="0"   y="158" width="120" height="42" rx="6"/><text class="val" x="60"  y="185" text-anchor="middle">idx 4 (=5)</text>
+    <text class="tiny t-good" x="60" y="218" text-anchor="middle">FRONT = the max</text>
+  </g>
+  <text class="cap" x="140" y="184">When 5 arrived, it popped −1 and −3 off the back:</text>
+  <text class="cap" x="140" y="204">they are smaller <tspan class="capb">and older</tspan>, so they can never be</text>
+  <text class="cap" x="140" y="224">the max of any window that still contains 5.</text>
+
+  <rect class="panel" x="0" y="242" width="740" height="76" rx="10"/>
+  <text class="cap" x="16" y="266"><tspan class="capb">Two evictions, two different reasons:</tspan> pop the <tspan class="capb">back</tspan> while its value is smaller than the incoming one</text>
+  <text class="cap" x="16" y="286">(dominated); pop the <tspan class="capb">front</tspan> when its index has slid outside the window (expired). Each index is</text>
+  <text class="cap" x="16" y="306">pushed once and popped once, so the whole run is <tspan class="capb t-good">O(n)</tspan> despite the inner while loop.</text>
+</svg>
+<figcaption><b>The monotonic deque.</b> Memorise the two eviction rules and which end each applies to &mdash; that&rsquo;s the entire data structure. The same idea reappears in the <a href="../Stack/stack.html">Stack</a> section as the monotonic stack.</figcaption>
+</figure>
+
+<pre><code>from collections import deque
+def maxSlidingWindow(nums, k):
+    dq = deque()                     # holds indices, values decreasing front->back
+    res = []
+    for right in range(len(nums)):
+        while dq and nums[dq[-1]] &lt; nums[right]:
+            dq.pop()                 # dominated: smaller AND older
+        dq.append(right)
+        if dq[0] &lt;= right - k:       # front index slid out of the window
+            dq.popleft()
+        if right &gt;= k - 1:
+            res.append(nums[dq[0]])  # front is the max of the current window
+    return res
+</code></pre>
+
+<h3>4. Best Time to Buy and Sell Stock is a window in disguise</h3>
+
+<p><code>left</code> = buy day, <code>right</code> = sell day. If <code>price[right] &lt; price[left]</code>, move <code>left</code> to <code>right</code> (a cheaper buy day); otherwise the profit is <code>price[right] - price[left]</code>. It&rsquo;s the gentlest introduction to the two-pointer sweep, and it&rsquo;s equally natural as &ldquo;track the min seen so far.&rdquo;</p>
+
+<pre><code>def maxProfit(prices):
+    buy, best = 0, 0
+    for sell in range(1, len(prices)):
+        if prices[sell] &lt; prices[buy]:
+            buy = sell                       # cheaper buy day — jump left here
+        else:
+            best = max(best, prices[sell] - prices[buy])
+    return best
+</code></pre>
+
+<h2>Minimum Window Substring &mdash; the boss</h2>
+
+<p>The trickiest bookkeeping in the section, because you have to track not just counts but <em>how close to satisfied</em> the window is. The device that makes it manageable is a <code>have</code>/<code>need</code> pair.</p>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Minimum window substring using have and need counters">
+  <text class="capb" x="0" y="16">s = "ADOBECODEBANC", t = "ABC"</text>
+
+  <g>
+    <rect class="cell" x="0"   y="34" width="52" height="40" rx="5"/><text class="val" x="26"  y="60" text-anchor="middle">A</text>
+    <rect class="cell" x="56"  y="34" width="52" height="40" rx="5"/><text class="val" x="82"  y="60" text-anchor="middle">D</text>
+    <rect class="cell" x="112" y="34" width="52" height="40" rx="5"/><text class="val" x="138" y="60" text-anchor="middle">O</text>
+    <rect class="cell" x="168" y="34" width="52" height="40" rx="5"/><text class="val" x="194" y="60" text-anchor="middle">B</text>
+    <rect class="cell" x="224" y="34" width="52" height="40" rx="5"/><text class="val" x="250" y="60" text-anchor="middle">E</text>
+    <rect class="cell" x="280" y="34" width="52" height="40" rx="5"/><text class="val" x="306" y="60" text-anchor="middle">C</text>
+    <rect class="cell" x="336" y="34" width="52" height="40" rx="5"/><text class="val" x="362" y="60" text-anchor="middle">O</text>
+    <rect class="cell" x="392" y="34" width="52" height="40" rx="5"/><text class="val" x="418" y="60" text-anchor="middle">D</text>
+    <rect class="cell" x="448" y="34" width="52" height="40" rx="5"/><text class="val" x="474" y="60" text-anchor="middle">E</text>
+    <rect class="sv-good" x="504" y="34" width="52" height="40" rx="5"/><text class="val" x="530" y="60" text-anchor="middle">B</text>
+    <rect class="sv-good" x="560" y="34" width="52" height="40" rx="5"/><text class="val" x="586" y="60" text-anchor="middle">A</text>
+    <rect class="sv-good" x="616" y="34" width="52" height="40" rx="5"/><text class="val" x="642" y="60" text-anchor="middle">N</text>
+    <rect class="sv-good" x="672" y="34" width="52" height="40" rx="5"/><text class="val" x="698" y="60" text-anchor="middle">C</text>
+  </g>
+  <text class="cap t-good" x="614" y="94" text-anchor="middle">answer: "BANC", width 4</text>
+
+  <rect class="panel" x="0" y="112" width="740" height="128" rx="10"/>
+  <text class="capb" x="16" y="136">The have / need bookkeeping</text>
+  <text class="cap" x="16" y="162"><tspan class="sv-mono">need = Counter(t)</tspan> &#8212; required count per character. <tspan class="sv-mono">need_total = len(need)</tspan> = 3 distinct chars.</text>
+  <text class="cap" x="16" y="186"><tspan class="sv-mono">have</tspan> = how many <tspan class="capb">distinct characters</tspan> currently hit their required count exactly.</text>
+  <text class="cap" x="16" y="210">A character bumps <tspan class="sv-mono">have</tspan> by 1 only at the moment its window count <tspan class="capb">reaches</tspan> its need — not above it.</text>
+  <text class="cap t-good" x="16" y="234">Window covers t &#8660; <tspan class="sv-mono">have == need_total</tspan>. That is the O(1) validity test.</text>
+
+  <text class="capb" x="0" y="270">The loop</text>
+  <text class="cap" x="0" y="294">Grow <tspan class="sv-mono">right</tspan> until <tspan class="sv-mono">have == need_total</tspan>. Then, <tspan class="capb">while still covering</tspan>, record the width and evict from</text>
+  <text class="cap" x="0" y="316">the left — dropping a character below its need decrements <tspan class="sv-mono">have</tspan> and ends the shrink phase.</text>
+</svg>
+<figcaption><b>Have/need counting.</b> The reason <code>have</code> counts <em>distinct satisfied characters</em> rather than total characters is so the validity check stays a single integer comparison, even when the window holds surplus copies.</figcaption>
+</figure>
+
+<pre><code>from collections import Counter
+def minWindow(s, t):
+    if not t or not s:
+        return ""
+    need = Counter(t)
+    need_total, have = len(need), 0
+    window = {}
+    best, best_range = float("inf"), (0, 0)
+    left = 0
+    for right, ch in enumerate(s):
+        window[ch] = window.get(ch, 0) + 1
+        if ch in need and window[ch] == need[ch]:
+            have += 1
+        while have == need_total:                 # valid — try to shrink
+            if right - left + 1 &lt; best:
+                best = right - left + 1
+                best_range = (left, right)
+            lch = s[left]
+            window[lch] -= 1
+            if lch in need and window[lch] &lt; need[lch]:
+                have -= 1
+            left += 1
+    l, r = best_range
+    return s[l:r + 1] if best != float("inf") else ""
+</code></pre>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Single-pass min/max sweep</b></td><td>Track the minimum seen so far and the best profit against it. Barely a window, but the same left/right instinct.</td><td>Best Time to Buy and Sell Stock <span class="tag easy">easy</span></td></tr>
+<tr><td><b>2. Longest-valid variable window</b></td><td>Expand right, shrink left on violation, record the max width <em>after</em> repair. The second adds the <code>max_freq</code> trick.</td><td>Longest Substring Without Repeating Characters <span class="tag med">med</span>, Longest Repeating Character Replacement <span class="tag med">med</span></td></tr>
+<tr><td><b>3. Fixed-size permutation window</b></td><td>Slide a width-<code>len(s1)</code> window over <code>s2</code>, keeping character counts (or a <code>matches</code> counter) and checking for an exact match.</td><td>Permutation in String <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Shortest-valid variable window</b></td><td>Mirror image of group 2: grow until the window <em>covers</em> everything required, then shrink from the left while it still covers, recording the minimum.</td><td>Minimum Window Substring <span class="tag hard">hard</span></td></tr>
+<tr><td><b>5. Monotonic-deque window</b></td><td>A separate technique entirely: a deque of decreasing indices, front = current max.</td><td>Sliding Window Maximum <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Best Time to Buy and Sell Stock</b><span class="why">The gentlest left/right sweep. Solve it both as a window and as &ldquo;min so far&rdquo; and notice they&rsquo;re the same code.</span></li>
+<li><b>Longest Substring Without Repeating Characters</b><span class="why">First real variable window. Do the set version, then the &ldquo;jump left directly&rdquo; dict-of-last-index version.</span></li>
+<li><b>Longest Repeating Character Replacement</b><span class="why">Add the <code>max_freq</code>-in-window trick and be ready to justify never decreasing it.</span></li>
+<li><b>Permutation in String</b><span class="why">Switch to a fixed-size window with count matching. Push for the O(1) <code>matches</code> counter, not a 26-array comparison each step.</span></li>
+<li><b>Sliding Window Maximum</b><span class="why">Learn the monotonic deque. Two eviction rules, two ends.</span></li>
+<li class="boss"><b>Minimum Window Substring</b><span class="why">The boss: shortest-valid window with have/need counting. The record statement moves inside the while loop.</span></li>
+</ol>
+
+<p>By the time you reach Minimum Window Substring, the &ldquo;grow right, shrink left, keep validity as one number&rdquo; loop from problems 2&ndash;3 will be automatic, and you&rsquo;ll only be adding the have/need counter on top of a loop shape you already trust.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Window state</th></tr></thead>
+<tbody>
+<tr><td>Best Time to Buy and Sell Stock</td><td>O(n)</td><td>O(1)</td><td>min-so-far</td></tr>
+<tr><td>Longest Substring Without Repeating</td><td>O(n)</td><td>O(min(n, alphabet))</td><td><code>set</code> or last-index <code>dict</code></td></tr>
+<tr><td>Longest Repeating Char Replacement</td><td>O(n)</td><td>O(26)</td><td>counts + <code>max_freq</code></td></tr>
+<tr><td>Permutation in String</td><td>O(n)</td><td>O(26)</td><td>counts + <code>matches</code></td></tr>
+<tr><td>Sliding Window Maximum</td><td>O(n)</td><td>O(k)</td><td>monotonic deque of indices</td></tr>
+<tr><td>Minimum Window Substring</td><td>O(n + m)</td><td>O(alphabet)</td><td>counts + have/need</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — recording the answer in the wrong place</span>
+  <p>Longest → after the shrink loop. Shortest → inside it. Get this backwards and the code still runs.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — off-by-one in the width</span>
+  <p>The window <code>[left, right]</code> is <em>inclusive</em>, so its width is <code>right - left + 1</code>. Forgetting the <code>+1</code> is the single most frequent typo in this section.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — rescanning inside the loop</span>
+  <p>Calling <code>max(counts.values())</code> or comparing two 26-element arrays on every step turns O(n) into O(26n) &mdash; survivable &mdash; or, worse, recomputing over the window itself turns it into O(n·k). Maintain state incrementally.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — leaving zero-count keys in the map</span>
+  <p>If you use <code>len(window)</code> as &ldquo;number of distinct characters,&rdquo; you must <code>del</code> a key when its count drops to zero. Otherwise stale keys inflate the count forever.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Write these two comments first</span>
+  <p><code># window is valid when: ...</code><br><code># shrink from the left when: ...</code></p>
+  <p>Filling in those two blanks is 90% of every problem in this section; the pointer mechanics are identical every time.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

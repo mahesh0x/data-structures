@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heap / Priority Queue — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="heap" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Heap / Priority Queue</h1>
+<p class="deck">The structure that answers one question extremely fast &mdash; <em>what&rsquo;s the minimum right now?</em> &mdash; without keeping the whole collection sorted. This section trains you to hear the trigger phrases.</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">7</div></div>
+  <div class="fact"><div class="k">Push / pop</div><div class="v">O(log n)</div></div>
+  <div class="fact"><div class="k">Peek min</div><div class="v">O(1)</div></div>
+  <div class="fact"><div class="k">Heapify</div><div class="v">O(n)</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>When a heap is the answer</h2>
+
+<p class="lead-in">A heap is the data structure you reach for whenever the phrase <em>&ldquo;the k-th largest,&rdquo; &ldquo;the smallest so far,&rdquo; &ldquo;the most frequent,&rdquo;</em> or <em>&ldquo;the median as data streams in&rdquo;</em> shows up.</p>
+
+<p>It answers one question extremely fast &mdash; <em>what&rsquo;s the minimum (or maximum) element right now?</em> &mdash; in O(log n) per insert/remove, without keeping the whole collection sorted. The entire section is about training yourself to hear those trigger phrases and reach for a heap instead of re-sorting an array every time the data changes.</p>
+
+<p>There&rsquo;s no custom node class to learn; in Python a heap is just a list you only ever touch through <code>heapq</code>.</p>
+
+<h2>What a heap actually is</h2>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="A binary min-heap drawn as a tree and as the flat array that stores it">
+  <text class="capb" x="0" y="16">A min-heap: every parent is ≤ both of its children</text>
+
+  <!-- tree -->
+  <g class="sv-line">
+    <line x1="200" y1="58" x2="110" y2="106"/><line x1="200" y1="58" x2="290" y2="106"/>
+    <line x1="110" y1="134" x2="60" y2="182"/><line x1="110" y1="134" x2="160" y2="182"/>
+    <line x1="290" y1="134" x2="240" y2="182"/>
+  </g>
+  <circle class="sv-good" cx="200" cy="44" r="24"/><text class="val" x="200" y="50" text-anchor="middle">1</text>
+  <circle class="cell" cx="110" cy="120" r="24"/><text class="val" x="110" y="126" text-anchor="middle">3</text>
+  <circle class="cell" cx="290" cy="120" r="24"/><text class="val" x="290" y="126" text-anchor="middle">2</text>
+  <circle class="cell" cx="60"  cy="196" r="24"/><text class="val" x="60"  y="202" text-anchor="middle">7</text>
+  <circle class="cell" cx="160" cy="196" r="24"/><text class="val" x="160" y="202" text-anchor="middle">5</text>
+  <circle class="cell" cx="240" cy="196" r="24"/><text class="val" x="240" y="202" text-anchor="middle">4</text>
+
+  <text class="cap t-good" x="238" y="34">the min is always the root</text>
+  <text class="tiny" x="160" y="238" text-anchor="middle">note: 3 &gt; 2 and that is fine —</text>
+  <text class="tiny" x="160" y="254" text-anchor="middle">siblings are NOT ordered</text>
+
+  <!-- array -->
+  <text class="capb" x="400" y="46">…stored as a flat array, no pointers</text>
+  <g>
+    <rect class="sv-good" x="400" y="60" width="54" height="40" rx="4"/><text class="val" x="427" y="86" text-anchor="middle">1</text><text class="idx" x="427" y="116" text-anchor="middle">0</text>
+    <rect class="cell" x="456" y="60" width="54" height="40" rx="4"/><text class="val" x="483" y="86" text-anchor="middle">3</text><text class="idx" x="483" y="116" text-anchor="middle">1</text>
+    <rect class="cell" x="512" y="60" width="54" height="40" rx="4"/><text class="val" x="539" y="86" text-anchor="middle">2</text><text class="idx" x="539" y="116" text-anchor="middle">2</text>
+    <rect class="cell" x="568" y="60" width="54" height="40" rx="4"/><text class="val" x="595" y="86" text-anchor="middle">7</text><text class="idx" x="595" y="116" text-anchor="middle">3</text>
+    <rect class="cell" x="624" y="60" width="54" height="40" rx="4"/><text class="val" x="651" y="86" text-anchor="middle">5</text><text class="idx" x="651" y="116" text-anchor="middle">4</text>
+    <rect class="cell" x="680" y="60" width="54" height="40" rx="4"/><text class="val" x="707" y="86" text-anchor="middle">4</text><text class="idx" x="707" y="116" text-anchor="middle">5</text>
+  </g>
+  <text class="cap sv-mono" x="400" y="150">children of i:  2i+1, 2i+2</text>
+  <text class="cap sv-mono" x="400" y="172">parent of i:   (i-1)//2</text>
+  <text class="tiny" x="400" y="196">The tree is implied by arithmetic — nothing is stored</text>
+  <text class="tiny" x="400" y="212">but the values themselves.</text>
+
+  <rect class="panel" x="0" y="272" width="740" height="48" rx="10"/>
+  <text class="cap" x="16" y="300">Because the tree is always <tspan class="capb">complete</tspan>, its height is ⌊log₂ n⌋ — which is exactly why push and pop cost O(log n).</text>
+</svg>
+<figcaption><b>Heap = complete binary tree + heap property, stored in an array.</b> The weak ordering (parent ≤ children, siblings unordered) is precisely what makes it cheaper to maintain than a sorted list. You get the extreme in O(1) and you give up everything else.</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Sift up on push and sift down on pop">
+  <text class="capb t-acc" x="0" y="16">push(0) — sift UP until the parent is smaller</text>
+  <g class="sv-line">
+    <line x1="150" y1="52" x2="90" y2="94"/><line x1="150" y1="52" x2="210" y2="94"/>
+    <line x1="90" y1="118" x2="50" y2="160"/>
+  </g>
+  <circle class="cell" cx="150" cy="40" r="20"/><text class="val" x="150" y="45" text-anchor="middle">1</text>
+  <circle class="cell" cx="90"  cy="106" r="20"/><text class="val" x="90"  y="111" text-anchor="middle">3</text>
+  <circle class="cell" cx="210" cy="106" r="20"/><text class="val" x="210" y="111" text-anchor="middle">2</text>
+  <circle class="sv-acc" cx="50" cy="174" r="20"/><text class="val" x="50" y="179" text-anchor="middle">0</text>
+  <path class="s-acc" d="M64 158 L78 124"/><path class="f-acc" d="M82 118 l-9,3 l8,4 z"/>
+  <path class="s-acc" d="M104 90 L136 60"/><path class="f-acc" d="M142 54 l-9,2 l7,6 z"/>
+  <text class="cap" x="260" y="106">0 &lt; 3 → swap.  0 &lt; 1 → swap.</text>
+  <text class="cap" x="260" y="128">Now 0 is the root. At most log n swaps.</text>
+
+  <line class="sv-line dash" x1="0" y1="210" x2="740" y2="210"/>
+
+  <text class="capb t-info" x="0" y="240">pop() — move the LAST element to the root, then sift DOWN</text>
+  <text class="cap" x="0" y="266">Removing the root would leave a hole, so instead the last leaf is promoted to the root and swapped with its</text>
+  <text class="cap" x="0" y="288"><tspan class="capb">smaller</tspan> child repeatedly until the heap property holds. At most log n swaps, and the array stays contiguous.</text>
+</svg>
+<figcaption><b>Two operations, one idea.</b> Both restore the heap property by walking a single root-to-leaf path. You will almost never implement these by hand &mdash; but knowing that <code>heapify</code> is O(n) rather than O(n log n) is a genuinely common follow-up question.</figcaption>
+</figure>
+
+<h2>The core tool: <code>heapq</code> on a plain list</h2>
+
+<p>Python&rsquo;s <code>heapq</code> gives you a <strong>min-heap</strong> built on an ordinary list &mdash; the smallest element is always at index 0:</p>
+
+<pre><code>import heapq
+h = []
+heapq.heappush(h, 5)         # add — O(log n)
+heapq.heappush(h, 1)
+smallest = h[0]              # peek the min — O(1), does not remove
+x = heapq.heappop(h)         # remove & return the min — O(log n)
+heapq.heapify(nums)          # turn an existing list into a heap in-place — O(n)
+</code></pre>
+
+<p>Two idioms you&rsquo;ll use constantly:</p>
+
+<div class="two-col">
+<div>
+<h4>Max-heap by negating</h4>
+<pre><code>heapq.heappush(h, -x)
+largest = -heapq.heappop(h)</code></pre>
+<p style="font-size:14.5px"><code>heapq</code> is min-only, so to pop the <em>largest</em>, push the negation and negate again on the way out. Say &ldquo;I&rsquo;m simulating a max-heap by negating&rdquo; out loud &mdash; it reads as deliberate rather than confusing.</p>
+</div>
+<div>
+<h4>Priority by tuple</h4>
+<pre><code>heapq.heappush(h, (dist, point))
+heapq.heappush(h, (-count, task))</code></pre>
+<p style="font-size:14.5px">The heap orders by the first element, ties broken by the next. This is how you sort points by distance, tasks by count, tweets by timestamp.</p>
+</div>
+</div>
+
+<div class="callout trap">
+  <span class="ct">The tuple-comparison crash</span>
+  <p>If two tuples tie on the first element, Python compares the second. When that second element is a custom object with no <code>__lt__</code>, you get <code>TypeError: '&lt;' not supported</code>. Insert a unique tiebreaker in the middle: <code>(priority, counter, obj)</code>. This bites in Merge K Sorted Lists constantly.</p>
+</div>
+
+<h2>The one habit: do I need the extreme <em>repeatedly</em>, as the data changes?</h2>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;Am I going to need the min/max <em>over and over</em>, while the set of elements keeps shifting under me?&rdquo;</p>
+</div>
+
+<p>If you needed the extreme element <em>once</em>, you&rsquo;d just call <code>max()</code>. The heap earns its keep only when you need it <em>repeatedly</em> on a <em>changing</em> collection &mdash; pull the smallest, add two more, pull the smallest again. That&rsquo;s the tell.</p>
+
+<h2>The bounded size-k heap &mdash; the sharpest version of the instinct</h2>
+
+<p>Instead of a max-heap of everything, keep a <strong>min-heap of size k</strong>. Its root is the k-th largest, and every time a new element beats the root you pop the root and push the newcomer &mdash; the heap never grows past k.</p>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="A bounded size-k min heap keeping only the k largest elements seen">
+  <text class="capb" x="0" y="16">k = 3 — keep a min-heap of exactly the 3 largest seen so far</text>
+
+  <text class="cap" x="0" y="50">stream:</text>
+  <g>
+    <rect class="cell" x="70"  y="32" width="58" height="36" rx="5"/><text class="val" x="99"  y="56" text-anchor="middle">3</text>
+    <rect class="cell" x="132" y="32" width="58" height="36" rx="5"/><text class="val" x="161" y="56" text-anchor="middle">2</text>
+    <rect class="cell" x="194" y="32" width="58" height="36" rx="5"/><text class="val" x="223" y="56" text-anchor="middle">1</text>
+    <rect class="sv-acc" x="256" y="32" width="58" height="36" rx="5"/><text class="val" x="285" y="56" text-anchor="middle">5</text>
+    <rect class="cell" x="318" y="32" width="58" height="36" rx="5"/><text class="val" x="347" y="56" text-anchor="middle">6</text>
+    <rect class="cell" x="380" y="32" width="58" height="36" rx="5"/><text class="val" x="409" y="56" text-anchor="middle">4</text>
+  </g>
+  <text class="tiny t-acc" x="285" y="86" text-anchor="middle">arriving now</text>
+
+  <text class="cap" x="0" y="134">heap before:</text>
+  <g>
+    <rect class="sv-bad" x="120" y="116" width="70" height="36" rx="5"/><text class="val" x="155" y="140" text-anchor="middle">1</text>
+    <rect class="cell" x="196" y="116" width="70" height="36" rx="5"/><text class="val" x="231" y="140" text-anchor="middle">2</text>
+    <rect class="cell" x="272" y="116" width="70" height="36" rx="5"/><text class="val" x="307" y="140" text-anchor="middle">3</text>
+  </g>
+  <text class="tiny t-bad" x="155" y="170" text-anchor="middle">root = weakest survivor</text>
+
+  <path class="s-acc" d="M370 134 L420 134"/><path class="f-acc" d="M428 134 l-9,-5 l0,10 z"/>
+  <text class="cap" x="440" y="128">5 &gt; 1 → evict the root,</text>
+  <text class="cap" x="440" y="148">push 5. Size stays 3.</text>
+
+  <text class="cap" x="0" y="212">heap after:</text>
+  <g>
+    <rect class="sv-good" x="120" y="194" width="70" height="36" rx="5"/><text class="val" x="155" y="218" text-anchor="middle">2</text>
+    <rect class="cell" x="196" y="194" width="70" height="36" rx="5"/><text class="val" x="231" y="218" text-anchor="middle">3</text>
+    <rect class="cell" x="272" y="194" width="70" height="36" rx="5"/><text class="val" x="307" y="218" text-anchor="middle">5</text>
+  </g>
+  <text class="tiny t-good" x="155" y="248" text-anchor="middle">root = the 3rd largest so far ✓</text>
+
+  <rect class="panel" x="0" y="266" width="740" height="62" rx="10"/>
+  <text class="cap" x="16" y="292"><tspan class="capb">Why a MIN-heap for the LARGEST elements?</tspan> Because the thing you need instant access to is the <tspan class="capb">weakest member of the</tspan></text>
+  <text class="cap" x="16" y="314"><tspan class="capb">elite set</tspan> — the one to evict next. That&#8217;s the min. Cost: <tspan class="capb t-good">O(n log k)</tspan> instead of O(n log n).</text>
+</svg>
+<figcaption><b>&ldquo;Keep a heap of exactly the k things I care about, evicting the weakest.&rdquo;</b> This pattern unlocks half the section, and the min-heap-for-max-elements inversion is the part worth saying out loud &mdash; it looks backwards until you name what the root represents.</figcaption>
+</figure>
+
+<pre><code>import heapq
+def kth_largest(nums, k):
+    h = []
+    for x in nums:
+        heapq.heappush(h, x)
+        if len(h) &gt; k:
+            heapq.heappop(h)     # drop the smallest — keep only the top k
+    return h[0]                  # the k-th largest is the min of the top k
+</code></pre>
+
+<h2>The pattern families</h2>
+
+<h3>Repeated extract-and-reinsert</h3>
+
+<p>Some problems repeatedly pull the top one or two elements, transform them, and push a result back. Last Stone Weight is the canonical shape &mdash; a max-heap you drain in a loop.</p>
+
+<figure>
+<svg viewBox="0 0 740 220" role="img" aria-label="Last stone weight: pop the two heaviest, push the difference, repeat">
+  <text class="capb" x="0" y="16">stones = [2, 7, 4, 1, 8, 1] — smash the two heaviest, repeat</text>
+
+  <g>
+    <rect class="sv-acc" x="0" y="40" width="140" height="40" rx="6"/><text class="val" x="70" y="66" text-anchor="middle">8, 7 →</text>
+    <text class="tiny" x="70" y="98" text-anchor="middle">pop, pop</text>
+  </g>
+  <path class="s-acc" d="M150 60 L186 60"/><path class="f-acc" d="M194 60 l-9,-5 l0,10 z"/>
+  <g>
+    <rect class="sv-good" x="204" y="40" width="140" height="40" rx="6"/><text class="val" x="274" y="66" text-anchor="middle">push 1</text>
+    <text class="tiny" x="274" y="98" text-anchor="middle">8 − 7 = 1</text>
+  </g>
+  <path class="s-acc" d="M354 60 L390 60"/><path class="f-acc" d="M398 60 l-9,-5 l0,10 z"/>
+  <g>
+    <rect class="cell" x="408" y="40" width="300" height="40" rx="6"/><text class="val" x="558" y="66" text-anchor="middle">heap = [4, 2, 1, 1, 1]</text>
+    <text class="tiny" x="558" y="98" text-anchor="middle">loop until ≤ 1 stone remains</text>
+  </g>
+
+  <rect class="panel" x="0" y="126" width="740" height="90" rx="10"/>
+  <text class="capb" x="16" y="150">Implementation notes</text>
+  <text class="cap" x="16" y="176">Negate on the way in: <tspan class="sv-mono">stones = [-s for s in stones]; heapq.heapify(stones)</tspan> — O(n), not O(n log n).</text>
+  <text class="cap" x="16" y="200">Only push the difference back <tspan class="capb">if it is non-zero</tspan>; equal stones destroy each other and leave nothing behind.</text>
+</svg>
+<figcaption><b>Drain and recombine.</b> Each round removes at least one stone, so the loop runs at most n times, each iteration costing O(log n) &mdash; O(n log n) overall.</figcaption>
+</figure>
+
+<h3>Heap of tuples for prioritised selection</h3>
+
+<p>When &ldquo;priority&rdquo; is a computed key, push <code>(key, payload)</code>:</p>
+
+<ul>
+<li><b>K Closest Points to Origin</b> pushes <code>(distance², point)</code>. Skip the square root &mdash; it&rsquo;s monotonic, so it can&rsquo;t change the ordering, and avoiding it removes a float-precision worry.</li>
+<li><b>Task Scheduler</b> pushes <code>-count</code> to always grab the most frequent remaining task.</li>
+<li><b>Design Twitter</b> merges each followee&rsquo;s recent tweets by timestamp.</li>
+</ul>
+
+<h3>Greedy scheduling with a cooldown queue</h3>
+
+<figure>
+<svg viewBox="0 0 740 280" role="img" aria-label="Task scheduler using a max heap of counts plus a cooldown queue">
+  <text class="capb" x="0" y="16">Task Scheduler — tasks = [A,A,A,B,B,B], n = 2 cooldown</text>
+
+  <rect class="sv-acc" x="0" y="36" width="300" height="110" rx="10"/>
+  <text class="capb t-acc" x="16" y="60">max-heap of remaining counts</text>
+  <text class="val" x="16" y="90">[-3 (A), -3 (B)]</text>
+  <text class="cap" x="16" y="118">&#8220;which task should I run right now?&#8221;</text>
+  <text class="tiny" x="16" y="138">always the most frequent AVAILABLE one</text>
+
+  <rect class="sv-info" x="360" y="36" width="380" height="110" rx="10"/>
+  <text class="capb t-info" x="376" y="60">cooldown queue</text>
+  <text class="val" x="376" y="90">[(count_left, ready_at_time), …]</text>
+  <text class="cap" x="376" y="118">a task that just ran waits here until</text>
+  <text class="tiny" x="376" y="138">time &#8805; ready_at_time, then goes back in the heap</text>
+
+  <path class="s-acc" d="M300 78 L352 78"/><path class="f-acc" d="M358 78 l-9,-5 l0,10 z"/>
+  <text class="tiny t-acc" x="326" y="70" text-anchor="middle">ran</text>
+  <path class="s-info" d="M358 116 L306 116"/><path class="f-info" d="M300 116 l9,-5 l0,10 z"/>
+  <text class="tiny t-info" x="330" y="134" text-anchor="middle">cooled</text>
+
+  <text class="capb" x="0" y="184">Timeline: A B idle A B idle A B  →  8 units</text>
+  <g>
+    <rect class="sv-acc" x="0"   y="196" width="86" height="34" rx="4"/><text class="val" x="43"  y="219" text-anchor="middle">A</text>
+    <rect class="sv-good" x="90" y="196" width="86" height="34" rx="4"/><text class="val" x="133" y="219" text-anchor="middle">B</text>
+    <rect class="cell" x="180" y="196" width="86" height="34" rx="4"/><text class="val" x="223" y="219" text-anchor="middle">idle</text>
+    <rect class="sv-acc" x="270" y="196" width="86" height="34" rx="4"/><text class="val" x="313" y="219" text-anchor="middle">A</text>
+    <rect class="sv-good" x="360" y="196" width="86" height="34" rx="4"/><text class="val" x="403" y="219" text-anchor="middle">B</text>
+    <rect class="cell" x="450" y="196" width="86" height="34" rx="4"/><text class="val" x="493" y="219" text-anchor="middle">idle</text>
+    <rect class="sv-acc" x="540" y="196" width="86" height="34" rx="4"/><text class="val" x="583" y="219" text-anchor="middle">A</text>
+    <rect class="sv-good" x="630" y="196" width="86" height="34" rx="4"/><text class="val" x="673" y="219" text-anchor="middle">B</text>
+  </g>
+  <text class="cap" x="0" y="264">Greedy claim: run the <tspan class="capb">most frequent available</tspan> task first — the bottleneck is the task with most copies left.</text>
+</svg>
+<figcaption><b>Heap + cooldown queue.</b> Two structures with different jobs: the heap answers &ldquo;what&rsquo;s the best available choice,&rdquo; the queue answers &ldquo;when does this become available again.&rdquo; The pairing generalises to any rate-limited scheduling question.</figcaption>
+</figure>
+
+<h3>Two heaps for a running median</h3>
+
+<p>Find Median from Data Stream keeps a max-heap of the smaller half and a min-heap of the larger half, balanced so their sizes differ by at most one. The median is then either the top of the larger heap or the average of both tops &mdash; O(log n) per insert, O(1) per query.</p>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Two heaps facing each other keep the median at their boundary">
+  <text class="capb" x="0" y="16">values so far: 1, 2, 3, 4, 5, 6 — the median sits at the boundary</text>
+
+  <!-- small (max-heap) -->
+  <rect class="sv-info" x="0" y="40" width="340" height="130" rx="10"/>
+  <text class="capb t-info" x="18" y="66">small — MAX-heap (negated)</text>
+  <text class="cap" x="18" y="86">the lower half</text>
+  <g>
+    <rect class="cell" x="18" y="100" width="70" height="36" rx="5"/><text class="val" x="53"  y="124" text-anchor="middle">1</text>
+    <rect class="cell" x="94" y="100" width="70" height="36" rx="5"/><text class="val" x="129" y="124" text-anchor="middle">2</text>
+    <rect class="sv-acc" x="170" y="100" width="70" height="36" rx="5"/><text class="val" x="205" y="124" text-anchor="middle">3</text>
+  </g>
+  <text class="tiny t-acc" x="205" y="158" text-anchor="middle">top = 3, the largest of the small half</text>
+
+  <!-- large (min-heap) -->
+  <rect class="sv-good" x="400" y="40" width="340" height="130" rx="10"/>
+  <text class="capb t-good" x="418" y="66">large — MIN-heap</text>
+  <text class="cap" x="418" y="86">the upper half</text>
+  <g>
+    <rect class="sv-acc" x="418" y="100" width="70" height="36" rx="5"/><text class="val" x="453" y="124" text-anchor="middle">4</text>
+    <rect class="cell" x="494" y="100" width="70" height="36" rx="5"/><text class="val" x="529" y="124" text-anchor="middle">5</text>
+    <rect class="cell" x="570" y="100" width="70" height="36" rx="5"/><text class="val" x="605" y="124" text-anchor="middle">6</text>
+  </g>
+  <text class="tiny t-acc" x="453" y="158" text-anchor="middle">top = 4, the smallest of the large half</text>
+
+  <line class="s-acc dash" x1="370" y1="30" x2="370" y2="180"/>
+  <text class="cap t-acc" x="370" y="200" text-anchor="middle">median = (3 + 4) / 2 = 3.5</text>
+
+  <rect class="panel" x="0" y="222" width="740" height="78" rx="10"/>
+  <text class="capb" x="16" y="246">Two invariants, restored on every insert</text>
+  <text class="cap" x="16" y="270"><tspan class="capb">1. Ordering:</tspan> every value in <tspan class="sv-mono">small</tspan> &#8804; every value in <tspan class="sv-mono">large</tspan>. Push to one, then move its top across to the other.</text>
+  <text class="cap" x="16" y="292"><tspan class="capb">2. Balance:</tspan> <tspan class="sv-mono">|len(small) − len(large)| &#8804; 1</tspan>. If one grows, move its top over. Odd total → the bigger heap&#8217;s top.</text>
+</svg>
+<figcaption><b>The median at the seam.</b> Sorting on every query would be O(n log n) per call; two heaps make insertion O(log n) and the query O(1). The insert routine is short but must always do <em>both</em> repairs &mdash; ordering first, then balance.</figcaption>
+</figure>
+
+<pre><code>import heapq
+class MedianFinder:
+    def __init__(self):
+        self.small = []          # max-heap (negated) — the lower half
+        self.large = []          # min-heap          — the upper half
+
+    def addNum(self, num):
+        heapq.heappush(self.small, -num)
+        # ordering repair: small's top must not exceed large's top
+        heapq.heappush(self.large, -heapq.heappop(self.small))
+        # balance repair: keep small the same size or one larger
+        if len(self.large) &gt; len(self.small):
+            heapq.heappush(self.small, -heapq.heappop(self.large))
+
+    def findMedian(self):
+        if len(self.small) &gt; len(self.large):
+            return -self.small[0]
+        return (-self.small[0] + self.large[0]) / 2
+</code></pre>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Bounded size-k heap</b></td><td>Keep a heap capped at k; read the root, evict the root when something better arrives.</td><td>Kth Largest Element in a Stream <span class="tag easy">easy</span>, Kth Largest Element in an Array <span class="tag med">med</span>, K Closest Points to Origin <span class="tag med">med</span></td></tr>
+<tr><td><b>2. Drain-and-recombine</b></td><td>A max-heap (via negation) that you repeatedly pop twice, combine, and push back.</td><td>Last Stone Weight <span class="tag easy">easy</span></td></tr>
+<tr><td><b>3. Greedy scheduling with counts</b></td><td>Max-heap of frequencies to always run the most common available task, plus a cooldown queue.</td><td>Task Scheduler <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Design with heaps + hashing</b></td><td>A follow graph (hash map of sets) combined with a heap-merge of followees&rsquo; recent tweets by timestamp.</td><td>Design Twitter <span class="tag med">med</span></td></tr>
+<tr><td><b>5. Two balanced heaps</b></td><td>A max-heap for the lower half and a min-heap for the upper half, rebalanced on every insert.</td><td>Find Median from Data Stream <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Kth Largest Element in a Stream</b><span class="why">The size-k heap idea in its simplest design form.</span></li>
+<li><b>Last Stone Weight</b><span class="why">Max-heap via negation, drain in a loop. Use <code>heapify</code>, not n pushes.</span></li>
+<li><b>K Closest Points to Origin</b><span class="why">Heap of <code>(distance², point)</code> tuples. Skip the square root and say why.</span></li>
+<li><b>Kth Largest Element in an Array</b><span class="why">Bounded size-k heap on a static array. Compare against Quickselect&rsquo;s O(n) average.</span></li>
+<li><b>Task Scheduler</b><span class="why">Heap + cooldown; greedy scheduling. There&rsquo;s also a neat O(n) math formula worth knowing.</span></li>
+<li><b>Design Twitter</b><span class="why">Heap-merge inside a larger design problem. Only merge the k most recent per followee.</span></li>
+<li class="boss"><b>Find Median from Data Stream</b><span class="why">The boss: two balanced heaps, two invariants repaired on every insert.</span></li>
+</ol>
+
+<p>Do problems 1 and 4 close together &mdash; they&rsquo;re the same size-k heap idea, one arriving as a stream and one over a fixed array, and seeing them side by side cements when the bounded heap beats a full sort. By the time you reach Find Median, the &ldquo;a heap gives me the extreme in O(log n)&rdquo; reflex will be automatic, and the only new idea is running <em>two</em> of them.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Heap holds</th></tr></thead>
+<tbody>
+<tr><td>Kth Largest in a Stream</td><td>O(log k) per add</td><td>O(k)</td><td>the k largest, min-heap</td></tr>
+<tr><td>Last Stone Weight</td><td>O(n log n)</td><td>O(n)</td><td>negated weights</td></tr>
+<tr><td>K Closest Points</td><td>O(n log k)</td><td>O(k)</td><td>(−dist², point) capped at k</td></tr>
+<tr><td>Kth Largest in an Array</td><td>O(n log k)</td><td>O(k)</td><td>the k largest, min-heap</td></tr>
+<tr><td>Task Scheduler</td><td>O(n log 26) ≈ O(n)</td><td>O(26)</td><td>negated counts</td></tr>
+<tr><td>Design Twitter</td><td>O(f log f) per feed</td><td>O(users + tweets)</td><td>(−timestamp, tweet)</td></tr>
+<tr><td>Find Median from Data Stream</td><td>O(log n) add / O(1) query</td><td>O(n)</td><td>two half-collections</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Alternatives worth naming out loud</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Approach</th><th>Time</th><th>When it wins</th></tr></thead>
+<tbody>
+<tr><td>Sort, then index</td><td>O(n log n)</td><td>k is close to n, or you need everything ordered anyway</td></tr>
+<tr><td>Size-k heap</td><td>O(n log k)</td><td>k ≪ n, or the data is a stream you can&rsquo;t re-read</td></tr>
+<tr><td>Quickselect</td><td>O(n) average, O(n²) worst</td><td>One-shot k-th largest on a static array in memory</td></tr>
+<tr><td>Bucket sort by count</td><td>O(n)</td><td>The sort key is a bounded small integer (see <a href="../ArraysHashing/arrays_hashing.html">Top K Frequent</a>)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — forgetting to negate on the way out</span>
+  <p>With a negated max-heap, <code>heappop</code> returns a negative number. Negate again. Half of all &ldquo;my answer is inverted&rdquo; bugs are this.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — <code>heappush</code> in a loop instead of <code>heapify</code></span>
+  <p>Building a heap from an existing list is O(n) with <code>heapify</code> and O(n log n) with n pushes. Free win, and interviewers notice.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — assuming the list is sorted</span>
+  <p>A heap list is <em>not</em> sorted. Only <code>h[0]</code> is meaningful; <code>h[1]</code> tells you nothing useful. Never print a heap and reason about the order.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — mutating a value already inside a heap</span>
+  <p>Changing an element&rsquo;s priority in place breaks the heap invariant silently. Either push a new entry and lazily skip stale ones on pop, or use a structure that supports decrease-key.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Name the root before you code</span>
+  <p>Write a one-line comment naming your heap and what its root <em>means</em> &mdash; e.g. <code># min-heap of the k largest seen; root == the k-th largest</code>. Committing to whether it&rsquo;s a min- or max-heap, whether you&rsquo;re negating, and what the root represents is what turns &ldquo;I&rsquo;ll use a heap somewhere&rdquo; into a correct solution.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

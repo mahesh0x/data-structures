@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Pointers — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="twop" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Two Pointers</h1>
+<p class="deck">Five problems, one idea: two indices walking a line, and the only real decision is <em>which one moves next &mdash; and why throwing away what it moves past is safe.</em></p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">5</div></div>
+  <div class="fact"><div class="k">Extra space</div><div class="v">O(1)</div></div>
+  <div class="fact"><div class="k">Beats</div><div class="v">O(n²) → O(n)</div></div>
+  <div class="fact"><div class="k">Precondition</div><div class="v" style="font-size:14px">sorted, or symmetric</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>Why this small section matters so much</h2>
+
+<p class="lead-in">Two Pointers is a small section &mdash; five problems &mdash; but it&rsquo;s one of the highest-leverage patterns in the whole list, because it&rsquo;s the trick that turns an O(n²) scan into an O(n) sweep <strong>without spending any extra memory</strong>. That last clause is what distinguishes it from Arrays &amp; Hashing: hashing buys speed with space, two pointers buys speed with <em>structure</em>.</p>
+
+<p>Nearly every two-pointer problem is the same physical picture: two indices walking a line. Once the decision rule is clear in your head, the code writes itself. The hard part is never the loop &mdash; it&rsquo;s the argument for why the loop is correct.</p>
+
+<h2>The one idea: prove the move is safe</h2>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;At each step, based on comparing the two ends, which pointer should I advance &mdash; and <em>why is it safe</em> to throw away the element I&rsquo;m moving past?&rdquo;</p>
+</div>
+
+<p>That word <em>safe</em> is the whole pattern. A two-pointer solution works only because every time you move a pointer inward, you can prove you&rsquo;re not skipping a better answer.</p>
+
+<ul>
+<li>In <b>Container With Most Water</b> you move the shorter wall in, because the shorter wall is the bottleneck &mdash; keeping it and shrinking the width can never help.</li>
+<li>In <b>sorted Two Sum</b> you move <code>left</code> up when the sum is too small, because every pair using the current <code>left</code> with a <em>smaller</em> partner is also too small.</li>
+</ul>
+
+<p>If you can articulate <em>why moving past this element loses nothing</em>, you have the solution. If you can&rsquo;t, two pointers probably isn&rsquo;t the right tool &mdash; and that&rsquo;s a genuinely useful negative signal, not a failure.</p>
+
+<div class="callout note">
+  <span class="ct">The counting argument</span>
+  <p>A converging two-pointer loop runs at most n iterations, because <em>every</em> iteration moves one pointer one step and the two pointers start n apart. That&rsquo;s the entire O(n) proof, and it&rsquo;s worth saying out loud in an interview &mdash; it takes four seconds and shows you know why the loop terminates.</p>
+</div>
+
+<h2>The two flavors</h2>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Converging pointers versus same-direction pointers">
+  <!-- converging -->
+  <text class="capb" x="0" y="18">Converging (opposite ends) — dominates this section</text>
+  <g>
+    <rect class="sv-acc" x="0"   y="36" width="72" height="42" rx="6"/><text class="val" x="36"  y="63" text-anchor="middle">a</text>
+    <rect class="cell"   x="76"  y="36" width="72" height="42" rx="6"/><text class="val" x="112" y="63" text-anchor="middle">b</text>
+    <rect class="cell"   x="152" y="36" width="72" height="42" rx="6"/><text class="val" x="188" y="63" text-anchor="middle">c</text>
+    <rect class="cell"   x="228" y="36" width="72" height="42" rx="6"/><text class="val" x="264" y="63" text-anchor="middle">d</text>
+    <rect class="cell"   x="304" y="36" width="72" height="42" rx="6"/><text class="val" x="340" y="63" text-anchor="middle">e</text>
+    <rect class="cell"   x="380" y="36" width="72" height="42" rx="6"/><text class="val" x="416" y="63" text-anchor="middle">f</text>
+    <rect class="sv-info" x="456" y="36" width="72" height="42" rx="6"/><text class="val" x="492" y="63" text-anchor="middle">g</text>
+  </g>
+  <text class="cap t-acc" x="36" y="98" text-anchor="middle">left</text>
+  <text class="cap t-info" x="492" y="98" text-anchor="middle">right</text>
+  <path class="s-acc" d="M36 108 L120 108"/><path class="f-acc" d="M128 108 l-9,-5 l0,10 z"/>
+  <path class="s-info" d="M492 108 L408 108"/><path class="f-info" d="M400 108 l9,-5 l0,10 z"/>
+  <text class="cap" x="556" y="55">they walk toward each other</text>
+  <text class="cap" x="556" y="75">until they meet</text>
+  <text class="tiny" x="556" y="102">Valid Palindrome · Two Sum II ·</text>
+  <text class="tiny" x="556" y="118">Container · Trapping Rain Water</text>
+
+  <line class="sv-line dash" x1="0" y1="146" x2="740" y2="146"/>
+
+  <!-- same direction -->
+  <text class="capb" x="0" y="176">Same-direction (anchor + sweep, or fast / slow)</text>
+  <g>
+    <rect class="sv-good" x="0"   y="194" width="72" height="42" rx="6"/><text class="val" x="36"  y="221" text-anchor="middle">a</text>
+    <rect class="sv-acc"  x="76"  y="194" width="72" height="42" rx="6"/><text class="val" x="112" y="221" text-anchor="middle">b</text>
+    <rect class="cell"    x="152" y="194" width="72" height="42" rx="6"/><text class="val" x="188" y="221" text-anchor="middle">c</text>
+    <rect class="cell"    x="228" y="194" width="72" height="42" rx="6"/><text class="val" x="264" y="221" text-anchor="middle">d</text>
+    <rect class="cell"    x="304" y="194" width="72" height="42" rx="6"/><text class="val" x="340" y="221" text-anchor="middle">e</text>
+    <rect class="cell"    x="380" y="194" width="72" height="42" rx="6"/><text class="val" x="416" y="221" text-anchor="middle">f</text>
+    <rect class="sv-info" x="456" y="194" width="72" height="42" rx="6"/><text class="val" x="492" y="221" text-anchor="middle">g</text>
+  </g>
+  <text class="cap t-good" x="36" y="256" text-anchor="middle">anchor</text>
+  <text class="cap t-acc" x="112" y="256" text-anchor="middle">left</text>
+  <text class="cap t-info" x="492" y="256" text-anchor="middle">right</text>
+  <text class="cap" x="524" y="213">an outer loop fixes one element,</text>
+  <text class="cap" x="524" y="233">a converging pair sweeps the rest</text>
+  <text class="tiny" x="524" y="258">3Sum</text>
+  <text class="tiny" x="0" y="278">The cue that matters: <tspan class="capb">sorted input + &#8220;find a pair / triple&#8221; almost always means two pointers</tspan> —</text>
+  <text class="tiny" x="0" y="294">sorting is what makes &#8220;move past this and never regret it&#8221; provable.</text>
+</svg>
+<figcaption><b>Two shapes, one idea.</b> The converging flavour dominates this section; the same-direction flavour shows up here only in 3Sum (and again, much more heavily, in the <a href="../SlidingWindow/sliding_window.html">Sliding Window</a> section, which is really two pointers moving the same way).</figcaption>
+</figure>
+
+<div class="two-col">
+<div>
+<h4>Converging template</h4>
+<pre><code>left, right = 0, len(arr) - 1
+while left &lt; right:
+    if condition(arr[left], arr[right]):
+        left += 1
+    else:
+        right -= 1</code></pre>
+</div>
+<div>
+<h4>Anchor + sweep template</h4>
+<pre><code>arr.sort()
+for i in range(len(arr)):
+    left, right = i + 1, len(arr) - 1
+    while left &lt; right:
+        ...            # converging pair
+</code></pre>
+</div>
+</div>
+
+<h2>Walkthrough: Valid Palindrome</h2>
+
+<p>The gentlest possible converging pair &mdash; no arithmetic, no sorting, just symmetry. The string&rsquo;s order <em>is</em> the structure.</p>
+
+<figure>
+<svg viewBox="0 0 740 250" role="img" aria-label="Two pointers converging on a palindrome, skipping non alphanumeric characters">
+  <text class="capb" x="0" y="16">"A man, a plan, a canal: Panama"  →  compare only alphanumerics, lowercased</text>
+
+  <g>
+    <rect class="sv-acc" x="0"   y="40" width="46" height="42" rx="5"/><text class="val" x="23"  y="67" text-anchor="middle">A</text>
+    <rect class="cell"   x="50"  y="40" width="46" height="42" rx="5"/><text class="val" x="73"  y="67" text-anchor="middle">m</text>
+    <rect class="cell"   x="100" y="40" width="46" height="42" rx="5"/><text class="val" x="123" y="67" text-anchor="middle">a</text>
+    <rect class="cell"   x="150" y="40" width="46" height="42" rx="5"/><text class="val" x="173" y="67" text-anchor="middle">n</text>
+    <rect class="sv-bad" x="200" y="40" width="46" height="42" rx="5"/><text class="val" x="223" y="67" text-anchor="middle">,</text>
+    <rect class="sv-bad" x="250" y="40" width="46" height="42" rx="5"/><text class="val" x="273" y="67" text-anchor="middle">␣</text>
+    <text class="val" x="330" y="67" text-anchor="middle">…</text>
+    <rect class="sv-bad" x="380" y="40" width="46" height="42" rx="5"/><text class="val" x="403" y="67" text-anchor="middle">:</text>
+    <rect class="sv-bad" x="430" y="40" width="46" height="42" rx="5"/><text class="val" x="453" y="67" text-anchor="middle">␣</text>
+    <rect class="cell"   x="480" y="40" width="46" height="42" rx="5"/><text class="val" x="503" y="67" text-anchor="middle">P</text>
+    <rect class="cell"   x="530" y="40" width="46" height="42" rx="5"/><text class="val" x="553" y="67" text-anchor="middle">a</text>
+    <rect class="cell"   x="580" y="40" width="46" height="42" rx="5"/><text class="val" x="603" y="67" text-anchor="middle">m</text>
+    <rect class="sv-info" x="630" y="40" width="46" height="42" rx="5"/><text class="val" x="653" y="67" text-anchor="middle">a</text>
+  </g>
+  <text class="cap t-acc" x="23"  y="100" text-anchor="middle">left</text>
+  <text class="cap t-info" x="653" y="100" text-anchor="middle">right</text>
+  <text class="tiny t-bad" x="223" y="100" text-anchor="middle">skip</text>
+  <text class="tiny t-bad" x="273" y="100" text-anchor="middle">skip</text>
+  <text class="tiny t-bad" x="403" y="100" text-anchor="middle">skip</text>
+  <text class="tiny t-bad" x="453" y="100" text-anchor="middle">skip</text>
+
+  <path class="s-good" d="M23 118 C 120 152, 560 152, 645 120"/>
+  <path class="f-good" d="M653 116 l-9,4 l3,9 z"/>
+  <text class="cap t-good" x="338" y="152" text-anchor="middle">'a' == 'a' &#10003;  both move inward</text>
+
+  <text class="cap" x="0" y="192"><tspan class="capb">The two inner while-loops are the whole problem:</tspan> before comparing, advance <tspan class="sv-mono">left</tspan> past</text>
+  <text class="cap" x="0" y="212">anything non-alphanumeric, and retreat <tspan class="sv-mono">right</tspan> the same way. Guard both with</text>
+  <text class="cap" x="0" y="232"><tspan class="sv-mono">left &lt; right</tspan> so a string of pure punctuation doesn&#8217;t run a pointer off the end.</text>
+</svg>
+<figcaption><b>Skip, then compare.</b> The classic bug here is forgetting the <code>left &lt; right</code> guard inside the skip loops, which walks off the end of a string like <code>",.;"</code>.</figcaption>
+</figure>
+
+<pre><code>def isPalindrome(s):
+    left, right = 0, len(s) - 1
+    while left &lt; right:
+        while left &lt; right and not s[left].isalnum():
+            left += 1
+        while left &lt; right and not s[right].isalnum():
+            right -= 1
+        if s[left].lower() != s[right].lower():
+            return False
+        left += 1
+        right -= 1
+    return True
+</code></pre>
+
+<h2>Walkthrough: Two Sum II &mdash; the cleanest &ldquo;why moving is safe&rdquo;</h2>
+
+<p>This is the problem to fully understand, because its safety argument is the template for every other one in the section.</p>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Sorted two sum: the decision rule and its proof">
+  <text class="capb" x="0" y="16">numbers = [2, 7, 11, 15]   ·   target = 18</text>
+
+  <!-- state 1 -->
+  <text class="cap" x="0" y="50">step 1</text>
+  <g>
+    <rect class="sv-acc" x="66" y="32" width="60" height="38" rx="5"/><text class="val" x="96" y="57" text-anchor="middle">2</text>
+    <rect class="cell"   x="130" y="32" width="60" height="38" rx="5"/><text class="val" x="160" y="57" text-anchor="middle">7</text>
+    <rect class="cell"   x="194" y="32" width="60" height="38" rx="5"/><text class="val" x="224" y="57" text-anchor="middle">11</text>
+    <rect class="sv-info" x="258" y="32" width="60" height="38" rx="5"/><text class="val" x="288" y="57" text-anchor="middle">15</text>
+  </g>
+  <text class="cap" x="340" y="49">2 + 15 = 17 &lt; 18 &#8212; <tspan class="t-acc capb">too small</tspan></text>
+  <text class="cap" x="340" y="67">&#8594; move <tspan class="sv-mono">left</tspan> right, to get a bigger number</text>
+
+  <!-- state 2 -->
+  <text class="cap" x="0" y="112">step 2</text>
+  <g>
+    <rect class="cell"   x="66" y="94" width="60" height="38" rx="5"/><text class="val" x="96" y="119" text-anchor="middle">2</text>
+    <rect class="sv-acc" x="130" y="94" width="60" height="38" rx="5"/><text class="val" x="160" y="119" text-anchor="middle">7</text>
+    <rect class="cell"   x="194" y="94" width="60" height="38" rx="5"/><text class="val" x="224" y="119" text-anchor="middle">11</text>
+    <rect class="sv-info" x="258" y="94" width="60" height="38" rx="5"/><text class="val" x="288" y="119" text-anchor="middle">15</text>
+  </g>
+  <text class="cap" x="340" y="111">7 + 15 = 22 &gt; 18 &#8212; <tspan class="t-info capb">too big</tspan></text>
+  <text class="cap" x="340" y="129">&#8594; move <tspan class="sv-mono">right</tspan> left, to get a smaller number</text>
+
+  <!-- state 3 -->
+  <text class="cap" x="0" y="174">step 3</text>
+  <g>
+    <rect class="cell"   x="66" y="156" width="60" height="38" rx="5"/><text class="val" x="96" y="181" text-anchor="middle">2</text>
+    <rect class="sv-good" x="130" y="156" width="60" height="38" rx="5"/><text class="val" x="160" y="181" text-anchor="middle">7</text>
+    <rect class="sv-good" x="194" y="156" width="60" height="38" rx="5"/><text class="val" x="224" y="181" text-anchor="middle">11</text>
+    <rect class="cell"   x="258" y="156" width="60" height="38" rx="5"/><text class="val" x="288" y="181" text-anchor="middle">15</text>
+  </g>
+  <text class="cap t-good" x="340" y="180">7 + 11 = 18 &#10003;  return [2, 3]  (1-indexed)</text>
+
+  <!-- proof panel -->
+  <rect class="panel" x="0" y="212" width="740" height="112" rx="10"/>
+  <text class="capb" x="16" y="236">Why discarding is safe — the argument to memorise</text>
+  <text class="cap" x="16" y="260">When <tspan class="sv-mono">nums[left] + nums[right] &lt; target</tspan>, consider every pair that still uses <tspan class="sv-mono">nums[left]</tspan>.</text>
+  <text class="cap" x="16" y="280">Its partner must come from strictly inside <tspan class="sv-mono">[left+1, right]</tspan>, and the array is sorted, so every</text>
+  <text class="cap" x="16" y="300">such partner is <tspan class="capb">&#8804; nums[right]</tspan>. All of those sums are also too small. Therefore <tspan class="sv-mono">nums[left]</tspan> can</text>
+  <text class="cap" x="16" y="318">never be part of the answer, and discarding it loses nothing. <tspan class="t-good capb">That is the proof.</tspan></text>
+</svg>
+<figcaption><b>The move rule and its justification.</b> Every other problem in this section is this same argument in different clothing &mdash; identify the element that <em>cannot possibly do better</em>, and discard it.</figcaption>
+</figure>
+
+<h2>Techniques you&rsquo;ll reuse</h2>
+
+<h3>Skip duplicates by advancing while equal</h3>
+
+<p>In problems that must return <em>unique</em> results (3Sum), after you record an answer, slide the pointer past any repeats so you don&rsquo;t emit the same triple twice:</p>
+
+<pre><code>while left &lt; right and nums[left] == nums[left + 1]:
+    left += 1
+</code></pre>
+
+<h3>Sort first when order doesn&rsquo;t matter</h3>
+
+<p>3Sum and sorted Two Sum both depend on sorted input. If the problem returns <em>values</em> (not original indices) and asks for pairs/triples summing to a target, sorting is usually step one &mdash; it&rsquo;s what unlocks the converging sweep. The cost is O(n log n), which is still dominated by the O(n²) outer loop in 3Sum, so it&rsquo;s free.</p>
+
+<div class="callout trap">
+  <span class="ct">When sorting is NOT allowed</span>
+  <p>If the problem wants <em>original indices</em> (plain Two Sum), you cannot sort &mdash; sorting destroys the indices. That&rsquo;s exactly why plain Two Sum is a hash-map problem and Two Sum II is a two-pointer problem. Same question, different constraint, completely different tool.</p>
+</div>
+
+<h3>Track a running best as the window changes</h3>
+
+<p>Container With Most Water and Trapping Rain Water both walk two pointers inward while keeping a max/accumulated total. The area or water at each step is a function of the two current heights and the gap between the pointers.</p>
+
+<h2>3Sum &mdash; composing the two flavours</h2>
+
+<p>3Sum is Two Sum II with a hat on. Sort, fix one element with an outer loop, then run a converging pair on everything to its right. The only genuinely fiddly part is deduplication, and it has to happen in <em>three</em> places.</p>
+
+<figure>
+<svg viewBox="0 0 740 290" role="img" aria-label="3Sum: an outer anchor with an inner converging pair, and the three places duplicates are skipped">
+  <text class="capb" x="0" y="16">sorted: [-4, -1, -1, 0, 1, 2]   ·   target sum = 0</text>
+
+  <g>
+    <rect class="cell" x="0"   y="34" width="112" height="42" rx="6"/><text class="val" x="56"  y="61" text-anchor="middle">-4</text>
+    <rect class="sv-good" x="118" y="34" width="112" height="42" rx="6"/><text class="val" x="174" y="61" text-anchor="middle">-1</text>
+    <rect class="cell" x="236" y="34" width="112" height="42" rx="6"/><text class="val" x="292" y="61" text-anchor="middle">-1</text>
+    <rect class="sv-acc" x="354" y="34" width="112" height="42" rx="6"/><text class="val" x="410" y="61" text-anchor="middle">0</text>
+    <rect class="cell" x="472" y="34" width="112" height="42" rx="6"/><text class="val" x="528" y="61" text-anchor="middle">1</text>
+    <rect class="sv-info" x="590" y="34" width="112" height="42" rx="6"/><text class="val" x="646" y="61" text-anchor="middle">2</text>
+  </g>
+  <text class="cap t-good" x="174" y="96" text-anchor="middle">anchor i</text>
+  <text class="cap t-acc"  x="410" y="96" text-anchor="middle">left</text>
+  <text class="cap t-info" x="646" y="96" text-anchor="middle">right</text>
+
+  <path class="s-good" d="M174 108 L174 128 L646 128"/>
+  <text class="cap" x="410" y="148" text-anchor="middle">need <tspan class="sv-mono">nums[left] + nums[right] == -nums[i]</tspan> = 1  &#8594;  0 + 2 &gt; 1, move right in</text>
+
+  <rect class="panel" x="0" y="164" width="740" height="120" rx="10"/>
+  <text class="capb" x="16" y="188">Three dedup checkpoints — miss one and you emit repeats</text>
+  <text class="cap" x="16" y="212"><tspan class="capb">1. The anchor:</tspan> <tspan class="sv-mono">if i &gt; 0 and nums[i] == nums[i-1]: continue</tspan></text>
+  <text class="cap" x="16" y="234"><tspan class="capb">2. After a hit, left:</tspan> <tspan class="sv-mono">while left &lt; right and nums[left] == nums[left+1]: left += 1</tspan></text>
+  <text class="cap" x="16" y="256"><tspan class="capb">3. After a hit, right:</tspan> <tspan class="sv-mono">while left &lt; right and nums[right] == nums[right-1]: right -= 1</tspan></text>
+  <text class="tiny" x="16" y="278">Then advance both once more. Skipping only the anchor is the single most common 3Sum bug.</text>
+</svg>
+<figcaption><b>3Sum decomposed.</b> Outer loop O(n) × inner converging sweep O(n) = O(n²) time and O(1) extra space &mdash; strictly better than the O(n²) space a naive hash-set-of-triples approach would need.</figcaption>
+</figure>
+
+<pre><code>def threeSum(nums):
+    nums.sort()
+    res = []
+    for i in range(len(nums) - 2):
+        if nums[i] &gt; 0:                       # sorted: no way to reach 0 from here
+            break
+        if i &gt; 0 and nums[i] == nums[i - 1]:  # dedup checkpoint 1
+            continue
+        left, right = i + 1, len(nums) - 1
+        while left &lt; right:
+            total = nums[i] + nums[left] + nums[right]
+            if total &lt; 0:
+                left += 1
+            elif total &gt; 0:
+                right -= 1
+            else:
+                res.append([nums[i], nums[left], nums[right]])
+                left += 1
+                right -= 1
+                while left &lt; right and nums[left] == nums[left - 1]:   # checkpoint 2
+                    left += 1
+                while left &lt; right and nums[right] == nums[right + 1]: # checkpoint 3
+                    right -= 1
+    return res
+</code></pre>
+
+<h2>Container With Most Water &mdash; move the limiting side</h2>
+
+<p>Area between two walls is <code>min(h[left], h[right]) × (right - left)</code>. Start at the widest possible pair and shrink. The decision rule is one line, but the proof is what makes it click.</p>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="Container with most water: why moving the shorter wall is the only safe move">
+  <!-- bars -->
+  <g>
+    <rect class="cell" x="20"  y="200" width="34" height="40"/>
+    <rect class="sv-acc" x="70"  y="130" width="34" height="110"/>
+    <rect class="cell" x="120" y="180" width="34" height="60"/>
+    <rect class="cell" x="170" y="150" width="34" height="90"/>
+    <rect class="cell" x="220" y="190" width="34" height="50"/>
+    <rect class="cell" x="270" y="120" width="34" height="120"/>
+    <rect class="cell" x="320" y="170" width="34" height="70"/>
+    <rect class="sv-info" x="370" y="160" width="34" height="80"/>
+    <line class="sv-line" x1="10" y1="240" x2="420" y2="240"/>
+  </g>
+  <!-- water -->
+  <rect x="104" y="160" width="266" height="80" class="sv-good" opacity=".45"/>
+  <text class="cap t-good" x="237" y="205" text-anchor="middle">area = min(7, 5) × 6 = 30</text>
+  <text class="cap t-acc" x="87" y="122" text-anchor="middle">7</text>
+  <text class="cap t-info" x="387" y="152" text-anchor="middle">5</text>
+  <text class="cap t-acc" x="87" y="260" text-anchor="middle">left</text>
+  <text class="cap t-info" x="387" y="260" text-anchor="middle">right</text>
+
+  <!-- reasoning -->
+  <rect class="panel" x="450" y="10" width="290" height="252" rx="10"/>
+  <text class="capb" x="466" y="34">Why move the shorter wall?</text>
+  <text class="cap" x="466" y="60">Suppose we keep the shorter wall (5) and</text>
+  <text class="cap" x="466" y="78">move the taller one inward instead.</text>
+  <text class="cap" x="466" y="104">• Width <tspan class="t-bad capb">decreases</tspan> — guaranteed.</text>
+  <text class="cap" x="466" y="126">• Height is still capped by the short</text>
+  <text class="cap" x="466" y="144">  wall, so it <tspan class="t-bad capb">cannot increase</tspan>.</text>
+    <text class="cap" x="466" y="170">Both factors move the wrong way, so every</text>
+  <text class="cap" x="466" y="188">such pair is worse. The short wall can</text>
+  <text class="cap" x="466" y="206">never do better than it just did &#8212;</text>
+  <text class="cap t-good capb" x="466" y="228">discard it. That&#8217;s the whole algorithm.</text>
+  <text class="tiny" x="466" y="252">(Ties: move either; both are provably exhausted.)</text>
+
+  <text class="cap" x="20" y="292">Each iteration retires one wall permanently, so the loop runs at most n times: <tspan class="capb t-good">O(n) time, O(1) space.</tspan></text>
+  <text class="tiny" x="20" y="312">The brute force is every pair — O(n²). The two-pointer version examines only n of those pairs and provably skips the rest.</text>
+</svg>
+<figcaption><b>Greedy with a proof.</b> Note the shape of the reasoning: identify a candidate whose <em>every remaining option</em> is dominated, and eliminate it. Trapping Rain Water uses exactly this argument on a different quantity.</figcaption>
+</figure>
+
+<pre><code>def maxArea(height):
+    left, right = 0, len(height) - 1
+    best = 0
+    while left &lt; right:
+        best = max(best, min(height[left], height[right]) * (right - left))
+        if height[left] &lt; height[right]:
+            left += 1          # the short wall can never do better — retire it
+        else:
+            right -= 1
+    return best
+</code></pre>
+
+<h2>Trapping Rain Water &mdash; the boss</h2>
+
+<p>The hardest to derive, and the one worth spending real time on. It rests on a single per-column formula:</p>
+
+<div class="callout key">
+  <span class="ct">The formula</span>
+  <p>Water sitting above column <code>i</code> is <code>min(max_left[i], max_right[i]) - height[i]</code>.<br>
+  A column is a bathtub whose two walls are the tallest bar anywhere to its left and the tallest bar anywhere to its right. The <em>shorter</em> of those two walls is where the water spills over.</p>
+</div>
+
+<figure>
+<svg viewBox="0 0 740 340" role="img" aria-label="Trapping rain water: per-column water level determined by the smaller of the two side maxima">
+  <text class="capb" x="0" y="16">height = [0,1,0,2,1,0,1,3,2,1,2,1]</text>
+
+  <!-- baseline -->
+  <line class="sv-line" x1="10" y1="200" x2="720" y2="200"/>
+
+  <!-- bars, unit = 14px height per level, 52px wide -->
+  <g>
+    <rect class="cell" x="14"  y="200" width="52" height="0"/>
+    <rect class="cell" x="70"  y="172" width="52" height="28"/>
+    <rect class="cell" x="126" y="200" width="52" height="0"/>
+    <rect class="cell" x="182" y="144" width="52" height="56"/>
+    <rect class="cell" x="238" y="172" width="52" height="28"/>
+    <rect class="cell" x="294" y="200" width="52" height="0"/>
+    <rect class="cell" x="350" y="172" width="52" height="28"/>
+    <rect class="sv-acc" x="406" y="116" width="52" height="84"/>
+    <rect class="cell" x="462" y="144" width="52" height="56"/>
+    <rect class="cell" x="518" y="172" width="52" height="28"/>
+    <rect class="cell" x="574" y="144" width="52" height="56"/>
+    <rect class="cell" x="630" y="172" width="52" height="28"/>
+  </g>
+
+  <!-- water -->
+  <g class="sv-info" opacity=".5">
+    <rect x="126" y="172" width="52" height="28"/>
+    <rect x="238" y="144" width="52" height="28"/>
+    <rect x="294" y="144" width="52" height="56"/>
+    <rect x="350" y="144" width="52" height="28"/>
+    <rect x="518" y="144" width="52" height="28"/>
+    <rect x="630" y="144" width="52" height="0"/>
+  </g>
+
+  <!-- highlight column 5 -->
+  <line class="s-good dash" x1="182" y1="144" x2="320" y2="144"/>
+  <line class="s-good dash" x1="320" y1="144" x2="458" y2="144"/>
+  <text class="cap t-good" x="320" y="136" text-anchor="middle">water level = min(2, 3) = 2</text>
+  <text class="tiny" x="320" y="216" text-anchor="middle">column 5, height 0</text>
+  <text class="tiny t-good" x="200" y="132" text-anchor="middle">max_left = 2</text>
+  <text class="tiny t-acc" x="432" y="108" text-anchor="middle">max_right = 3</text>
+  <text class="cap t-info" x="320" y="190" text-anchor="middle">2 units trapped</text>
+
+  <!-- two pointer logic -->
+  <rect class="panel" x="0" y="238" width="740" height="98" rx="10"/>
+  <text class="capb" x="16" y="262">The two-pointer version — and why the smaller side is decidable</text>
+  <text class="cap" x="16" y="286">Track <tspan class="sv-mono">left_max</tspan> and <tspan class="sv-mono">right_max</tspan> as you converge. If <tspan class="sv-mono">left_max &lt; right_max</tspan>, then for the left column</text>
+  <text class="cap" x="16" y="306">the <tspan class="capb">min of the two walls is definitely left_max</tspan> &#8212; whatever taller bars exist further right can only</text>
+  <text class="cap" x="16" y="326">raise <tspan class="sv-mono">right_max</tspan>, never lower the min. So its water is knowable <tspan class="capb t-good">now</tspan>. Compute it, move left in, repeat.</text>
+</svg>
+<figcaption><b>The bathtub picture.</b> The O(n)-space solution precomputes <code>max_left</code> and <code>max_right</code> arrays. The two-pointer version achieves O(1) space by noticing you only ever need to <em>know which of the two maxima is smaller</em>, and the pointer on the smaller side always knows that for certain.</figcaption>
+</figure>
+
+<pre><code>def trap(height):
+    if not height:
+        return 0
+    left, right = 0, len(height) - 1
+    left_max, right_max = height[left], height[right]
+    water = 0
+    while left &lt; right:
+        if left_max &lt; right_max:
+            left += 1
+            left_max = max(left_max, height[left])
+            water += left_max - height[left]      # cannot be negative — left_max just updated
+        else:
+            right -= 1
+            right_max = max(right_max, height[right])
+            water += right_max - height[right]
+    return water
+</code></pre>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Palindrome / character walk</b></td><td>Converging pointers from both ends, skipping non-alphanumerics, comparing lowercased characters. No sorting; the string order <em>is</em> the structure.</td><td>Valid Palindrome <span class="tag easy">easy</span></td></tr>
+<tr><td><b>2. Sorted-pair search</b></td><td>Converging pointers; sum too small → move <code>left</code> up, too big → move <code>right</code> down. The cleanest illustration of &ldquo;moving is safe.&rdquo;</td><td>Two Sum II <span class="tag med">med</span></td></tr>
+<tr><td><b>3. Fixed anchor + inner sweep</b></td><td>Sort, then for each index run a Two-Sum-II converging pair on the remainder, skipping duplicates on all three positions.</td><td>3Sum <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Area / geometry between two walls</b></td><td>Converging pointers where the answer at each step is a geometric function of the two heights; always move the limiting (shorter / smaller-max) side.</td><td>Container With Most Water <span class="tag med">med</span>, Trapping Rain Water <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Valid Palindrome</b><span class="why">Converging-pointer muscle memory with no math. Get the skip-guard right.</span></li>
+<li><b>Two Sum II — Input Array Is Sorted</b><span class="why">The canonical &ldquo;which side moves&rdquo; decision, and the safety proof you&rsquo;ll reuse everywhere.</span></li>
+<li><b>3Sum</b><span class="why">Compose Two Sum II inside an outer loop, plus duplicate skipping in three places.</span></li>
+<li><b>Container With Most Water</b><span class="why">Introduces the &ldquo;move the limiting side&rdquo; idea on areas. Say the dominance argument out loud.</span></li>
+<li class="boss"><b>Trapping Rain Water</b><span class="why">The boss: two-sided maxes and move-the-smaller-side. Derive the O(n)-space version first, then compress it.</span></li>
+</ol>
+
+<p>By the time you reach Trapping Rain Water, the &ldquo;move the limiting side, and prove it&rsquo;s safe&rdquo; reasoning from Container With Most Water will make the water-bounding argument click instead of feeling arbitrary.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Shape</th></tr></thead>
+<tbody>
+<tr><td>Valid Palindrome</td><td>O(n)</td><td>O(1)</td><td>converging + skip loops</td></tr>
+<tr><td>Two Sum II</td><td>O(n)</td><td>O(1)</td><td>converging, sum-driven</td></tr>
+<tr><td>3Sum</td><td>O(n²)</td><td>O(1) extra</td><td>anchor + converging pair</td></tr>
+<tr><td>Container With Most Water</td><td>O(n)</td><td>O(1)</td><td>converging, move shorter</td></tr>
+<tr><td>Trapping Rain Water</td><td>O(n)</td><td>O(1)</td><td>converging + running maxes</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — <code>left &lt;= right</code> vs <code>left &lt; right</code></span>
+  <p>For pair problems you want <code>&lt;</code>: an element must not pair with itself. For problems where the two pointers can legitimately land on the same element, you want <code>&lt;=</code>. Decide which before you type, and never change it mid-debug.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — forgetting the guard inside skip loops</span>
+  <p><code>while not s[left].isalnum(): left += 1</code> walks off the end of <code>"..."</code>. Always <code>while left &lt; right and ...</code>.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — deduping in only one place in 3Sum</span>
+  <p>Skipping duplicate anchors is necessary but not sufficient. <code>[-2,0,0,2,2]</code> will emit <code>[-2,0,2]</code> twice unless you also skip after recording a hit.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — sorting when indices matter</span>
+  <p>If the answer is a list of original indices, sorting destroys the answer. Reach for a hash map instead (see <a href="../ArraysHashing/arrays_hashing.html">Arrays &amp; Hashing</a>).</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Do this before coding</span>
+  <p>Write your move rule as an if/else in plain English, in a comment &mdash; e.g. <code># sum &lt; target: left++ (need bigger); sum &gt; target: right-- (need smaller)</code>. If you can&rsquo;t fill in the <em>why</em> after each branch, you don&rsquo;t yet understand the problem well enough to code it.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

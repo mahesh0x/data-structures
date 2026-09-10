@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced Graphs — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="advgraphs" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Advanced Graphs</h1>
+<p class="deck">Six problems, six named classical algorithms in disguise. The skill to build isn&rsquo;t cleverness &mdash; it&rsquo;s <strong>recognition</strong>. Once you can name it, the code writes itself from a template.</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">6</div></div>
+  <div class="fact"><div class="k">Universal tool</div><div class="v" style="font-size:14px">min-heap</div></div>
+  <div class="fact"><div class="k">Dijkstra</div><div class="v">O(E log V)</div></div>
+  <div class="fact"><div class="k">Real skill</div><div class="v" style="font-size:14px">classification</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>What changes from the Graphs section</h2>
+
+<p class="lead-in">If the <a href="../Graphs/graphs.html">Graphs</a> section was about <em>how to move</em> through a graph (DFS/BFS), Advanced Graphs is about <em>what to optimise while you move</em> &mdash; the cheapest way to connect everything, the shortest weighted path, a valid ordering, an unbroken trail.</p>
+
+<p>There are only six problems here, but each one is really a named classical algorithm in disguise. The implementations are short; <strong>the recognition is the hard part.</strong></p>
+
+<h2>The core structure &mdash; weighted graphs and the heap</h2>
+
+<p>Almost everything here operates on a <b>weighted adjacency list</b>, and almost every shortest-path / MST algorithm reaches for a <b>min-heap</b> to always expand the cheapest option next.</p>
+
+<pre><code>from collections import defaultdict
+import heapq
+
+# weighted adjacency list: node -> list of (neighbor, weight)
+adj = defaultdict(list)
+for u, v, w in edges:
+    adj[u].append((v, w))        # directed; add the reverse too if undirected
+
+# the universal move: a min-heap keyed by cost-so-far
+heap = [(0, start)]              # (cost, node)
+while heap:
+    cost, node = heapq.heappop(heap)   # always pull the cheapest frontier node
+    ...
+    heapq.heappush(heap, (cost + w, nxt))
+</code></pre>
+
+<p><code>heapq</code> is a plain min-heap over tuples &mdash; it sorts by the first element, so you put the thing you want to minimise (distance, edge weight) first. That single pattern powers Dijkstra, Prim, and the &ldquo;swim&rdquo; problem.</p>
+
+<h2>The one habit: which classical algorithm is this?</h2>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;Am I minimising a <em>total path cost</em>, a <em>total connection cost</em>, finding an <em>ordering</em>, or tracing an <em>unbroken trail</em>?&rdquo;</p>
+</div>
+
+<figure>
+<svg viewBox="0 0 740 340" role="img" aria-label="A decision tree for classifying advanced graph problems into named algorithms">
+  <text class="capb" x="0" y="16">Classify in 30 seconds — then type the template</text>
+
+  <rect class="sv-acc" x="230" y="30" width="280" height="42" rx="8"/>
+  <text class="val" x="370" y="56" text-anchor="middle">What am I optimising?</text>
+
+  <!-- branch lines -->
+  <path class="s-acc" d="M300 74 L120 108"/><path class="s-acc" d="M350 74 L300 108"/>
+  <path class="s-acc" d="M390 74 L460 108"/><path class="s-acc" d="M440 74 L640 108"/>
+
+  <rect class="sv-info" x="0" y="112" width="180" height="86" rx="8"/>
+  <text class="capb t-info" x="14" y="136">Total path cost</text>
+  <text class="cap" x="14" y="158">single source,</text>
+  <text class="cap" x="14" y="176">non-negative weights</text>
+  <text class="capb" x="14" y="194">→ Dijkstra</text>
+
+  <rect class="sv-good" x="192" y="112" width="180" height="86" rx="8"/>
+  <text class="capb t-good" x="206" y="136">Connect everything</text>
+  <text class="cap" x="206" y="158">minimum total cost</text>
+  <text class="cap" x="206" y="176">to link all nodes</text>
+  <text class="capb" x="206" y="194">→ MST (Prim / Kruskal)</text>
+
+  <rect class="sv-warn" x="384" y="112" width="170" height="86" rx="8"/>
+  <text class="capb t-warn" x="398" y="136">A valid ordering</text>
+  <text class="cap" x="398" y="158">dependencies,</text>
+  <text class="cap" x="398" y="176">&#8220;must come before&#8221;</text>
+  <text class="capb" x="398" y="194">→ Topological sort</text>
+
+  <rect class="sv-bad" x="566" y="112" width="174" height="86" rx="8"/>
+  <text class="capb t-bad" x="580" y="136">Use every EDGE</text>
+  <text class="cap" x="580" y="158">exactly once</text>
+  <text class="cap" x="580" y="176">(&#8220;all tickets&#8221;)</text>
+  <text class="capb" x="580" y="194">→ Eulerian path</text>
+
+  <rect class="panel" x="0" y="222" width="740" height="118" rx="10"/>
+  <text class="capb" x="16" y="246">The one that breaks the pattern</text>
+  <text class="cap" x="16" y="272">If a shortest-path problem adds a <tspan class="capb">limit on the number of edges/stops</tspan>, Dijkstra&#8217;s greedy finalisation is invalid:</text>
+  <text class="cap" x="16" y="294">the cheapest way to reach a node may use too many hops, and a pricier-but-shorter route may be the only legal one.</text>
+  <text class="cap" x="16" y="316">Dijkstra finalises a node the first time it pops it and never reconsiders — so use <tspan class="capb">Bellman-Ford</tspan> (relax K+1 rounds) or a</text>
+  <text class="cap" x="16" y="334">BFS that carries <tspan class="sv-mono">(cost, stops)</tspan> instead. This is exactly Cheapest Flights Within K Stops.</text>
+</svg>
+<figcaption><b>Classification first, code second.</b> Getting this right in the first thirty seconds is the entire game in this section. Everything below is the template that follows from the label.</figcaption>
+</figure>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>The problem is about…</th><th>The algorithm is…</th><th>The tell</th></tr></thead>
+<tbody>
+<tr><td>Shortest path from one source, non-negative weights</td><td><b>Dijkstra</b></td><td>&ldquo;minimum time,&rdquo; &ldquo;cheapest,&rdquo; single start</td></tr>
+<tr><td>Shortest path with an edge/stop limit</td><td><b>Bellman-Ford / BFS by layers</b></td><td>&ldquo;within K stops&rdquo;</td></tr>
+<tr><td>Connect all nodes at minimum total cost</td><td><b>MST (Prim or Kruskal)</b></td><td>&ldquo;connect all points,&rdquo; &ldquo;minimum cost to link everything&rdquo;</td></tr>
+<tr><td>A valid order respecting dependencies</td><td><b>Topological sort</b></td><td>&ldquo;must come before,&rdquo; building an ordering</td></tr>
+<tr><td>Use every edge exactly once</td><td><b>Eulerian path (Hierholzer&rsquo;s)</b></td><td>&ldquo;use all tickets,&rdquo; &ldquo;reconstruct the itinerary&rdquo;</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Dijkstra &mdash; single-source shortest path</h2>
+
+<figure>
+<svg viewBox="0 0 740 356" role="img" aria-label="Dijkstra expanding the cheapest frontier node and finalising distances">
+  <text class="capb" x="0" y="16">Always expand the cheapest node on the frontier — and never revisit it</text>
+
+  <!-- graph -->
+  <g class="sv-line">
+    <line x1="70" y1="120" x2="220" y2="70"/><line x1="70" y1="120" x2="220" y2="190"/>
+    <line x1="220" y1="70" x2="360" y2="130"/><line x1="220" y1="190" x2="360" y2="130"/>
+    <line x1="360" y1="130" x2="480" y2="130"/>
+  </g>
+  <circle class="sv-acc" cx="70" cy="120" r="24"/><text class="val" x="70" y="126" text-anchor="middle">A</text>
+  <circle class="sv-good" cx="220" cy="70" r="24"/><text class="val" x="220" y="76" text-anchor="middle">B</text>
+  <circle class="sv-good" cx="220" cy="190" r="24"/><text class="val" x="220" y="196" text-anchor="middle">C</text>
+  <circle class="sv-info" cx="360" cy="130" r="24"/><text class="val" x="360" y="136" text-anchor="middle">D</text>
+  <circle class="cell" cx="480" cy="130" r="24"/><text class="val" x="480" y="136" text-anchor="middle">E</text>
+
+  <text class="tiny" x="140" y="86" text-anchor="middle">1</text>
+  <text class="tiny" x="140" y="174" text-anchor="middle">4</text>
+  <text class="tiny" x="298" y="92" text-anchor="middle">2</text>
+  <text class="tiny" x="298" y="176" text-anchor="middle">1</text>
+  <text class="tiny" x="420" y="120" text-anchor="middle">3</text>
+
+  <text class="tiny t-acc" x="70" y="164" text-anchor="middle">dist 0</text>
+  <text class="tiny t-good" x="220" y="42" text-anchor="middle">dist 1</text>
+  <text class="tiny t-good" x="220" y="230" text-anchor="middle">dist 4</text>
+  <text class="tiny t-info" x="360" y="174" text-anchor="middle">dist 3 (via B, not C)</text>
+
+  <rect class="panel" x="530" y="30" width="210" height="180" rx="10"/>
+  <text class="capb" x="546" y="54">Heap over time</text>
+  <text class="cap sv-mono" x="546" y="80">(0, A)</text>
+  <text class="cap sv-mono" x="546" y="102">(1, B) (4, C)</text>
+  <text class="cap sv-mono" x="546" y="124">(3, D) (4, C)</text>
+  <text class="cap sv-mono" x="546" y="146">(4, C) (5, D)*</text>
+  <text class="cap sv-mono" x="546" y="168">(6, E)</text>
+  <text class="tiny" x="546" y="196">* stale entry — skipped on pop</text>
+
+  <rect class="panel" x="0" y="248" width="740" height="104" rx="10"/>
+  <text class="capb" x="16" y="272">Lazy deletion — why the stale entries are harmless</text>
+  <text class="cap" x="16" y="298"><tspan class="sv-mono">heapq</tspan> can&#8217;t update a key in place, so instead of decreasing D&#8217;s priority you just push a second entry for D.</text>
+  <text class="cap" x="16" y="320">The cheaper one pops first and finalises D; when the stale one surfaces, <tspan class="sv-mono">if node in dist: continue</tspan></text>
+  <text class="cap" x="16" y="342">discards it. Correct, and much simpler than a decrease-key heap.</text>
+</svg>
+<figcaption><b>Dijkstra.</b> The greedy claim &mdash; the first time a node pops, its distance is final &mdash; is valid <em>only</em> because all weights are non-negative. A negative edge could make a longer route cheaper later, which is why Bellman-Ford exists.</figcaption>
+</figure>
+
+<pre><code>def dijkstra(adj, start, n):
+    dist = {}
+    heap = [(0, start)]
+    while heap:
+        d, node = heapq.heappop(heap)
+        if node in dist:            # already finalized (lazy deletion)
+            continue
+        dist[node] = d
+        for nxt, w in adj[node]:
+            if nxt not in dist:
+                heapq.heappush(heap, (d + w, nxt))
+    return dist
+</code></pre>
+
+<div class="callout note">
+  <span class="ct">Network Delay Time, in one line</span>
+  <p>The time for a signal to reach <em>all</em> nodes is <code>max(dist.values())</code> &mdash; the slowest of the finalised distances &mdash; or <code>-1</code> if <code>len(dist) &lt; n</code>, meaning some node was never reached.</p>
+</div>
+
+<h3>Swim in Rising Water &mdash; a Dijkstra variant</h3>
+
+<p>The one change that makes it interesting: a path&rsquo;s cost is the <em>maximum</em> elevation along it, not the sum. Everything else is identical.</p>
+
+<figure>
+<svg viewBox="0 0 740 250" role="img" aria-label="Swim in rising water: the heap key is a running maximum rather than a running sum">
+  <rect class="sv-info" x="0" y="10" width="356" height="150" rx="10"/>
+  <text class="capb t-info" x="18" y="36">Standard Dijkstra</text>
+  <text class="cap" x="18" y="66">path cost accumulates:</text>
+  <text class="cap sv-mono" x="18" y="92">new_cost = cost + weight</text>
+  <text class="cap" x="18" y="122">&#8220;how much do I pay in total</text>
+  <text class="cap" x="18" y="142">to walk this route?&#8221;</text>
+
+  <rect class="sv-acc" x="384" y="10" width="356" height="150" rx="10"/>
+  <text class="capb t-acc" x="402" y="36">Swim in Rising Water</text>
+  <text class="cap" x="402" y="66">path cost is a bottleneck:</text>
+  <text class="cap sv-mono" x="402" y="92">new_cost = max(cost, elevation)</text>
+  <text class="cap" x="402" y="122">&#8220;how high must the water rise</text>
+  <text class="cap" x="402" y="142">before this route is swimmable?&#8221;</text>
+
+  <rect class="panel" x="0" y="180" width="740" height="66" rx="10"/>
+  <text class="cap" x="16" y="206">Both are &#8220;expand the cheapest frontier node first,&#8221; and both stay correct because the cost function is <tspan class="capb">monotonic</tspan> —</text>
+  <text class="cap" x="16" y="228">extending a path can never make it cheaper. That is the real precondition for Dijkstra, and <tspan class="sv-mono">max</tspan> satisfies it just as well as <tspan class="sv-mono">+</tspan>.</text>
+</svg>
+<figcaption><b>Change the combine function, keep the algorithm.</b> Recognising that Dijkstra generalises to any monotonic cost combiner is what turns this from a puzzle into a two-character edit.</figcaption>
+</figure>
+
+<h2>Minimum Spanning Tree &mdash; Prim vs. Kruskal</h2>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Prim grows a tree from one node while Kruskal adds globally cheapest edges">
+  <text class="capb t-info" x="0" y="16">Prim — grow one tree outward</text>
+  <g class="sv-line">
+    <line x1="60" y1="80" x2="170" y2="60"/><line x1="60" y1="80" x2="130" y2="150"/>
+    <line x1="170" y1="60" x2="250" y2="130"/><line x1="130" y1="150" x2="250" y2="130"/>
+  </g>
+  <circle class="sv-info" cx="60"  cy="80"  r="20"/><text class="val" x="60"  y="85" text-anchor="middle">A</text>
+  <circle class="sv-info" cx="170" cy="60"  r="20"/><text class="val" x="170" y="65" text-anchor="middle">B</text>
+  <circle class="sv-info" cx="130" cy="150" r="20"/><text class="val" x="130" y="155" text-anchor="middle">C</text>
+  <circle class="cell" cx="250" cy="130" r="20"/><text class="val" x="250" y="135" text-anchor="middle">D</text>
+  <path class="s-info" d="M80 76 L150 64"/><path class="s-info" d="M74 96 L116 134"/>
+  <text class="tiny t-info" x="0" y="196">the tree is always connected;</text>
+  <text class="tiny t-info" x="0" y="212">it just absorbs the nearest outside node</text>
+  <text class="cap sv-mono" x="0" y="240">heap key = edge weight</text>
+
+  <text class="capb t-good" x="400" y="16">Kruskal — add cheapest edges anywhere</text>
+  <g class="sv-line">
+    <line x1="460" y1="80" x2="570" y2="60"/><line x1="460" y1="80" x2="530" y2="150"/>
+    <line x1="570" y1="60" x2="650" y2="130"/><line x1="530" y1="150" x2="650" y2="130"/>
+  </g>
+  <circle class="sv-good" cx="460" cy="80"  r="20"/><text class="val" x="460" y="85" text-anchor="middle">A</text>
+  <circle class="sv-good" cx="570" cy="60"  r="20"/><text class="val" x="570" y="65" text-anchor="middle">B</text>
+  <circle class="cell" cx="530" cy="150" r="20"/><text class="val" x="530" y="155" text-anchor="middle">C</text>
+  <circle class="sv-good" cx="650" cy="130" r="20"/><text class="val" x="650" y="135" text-anchor="middle">D</text>
+  <path class="s-good" d="M480 76 L550 64"/><path class="s-good" d="M588 74 L634 116"/>
+  <text class="tiny t-good" x="400" y="196">disconnected fragments merge over time;</text>
+  <text class="tiny t-good" x="400" y="212">union-find rejects any edge that would cycle</text>
+  <text class="cap sv-mono" x="400" y="240">sort all edges, then union</text>
+
+  <rect class="panel" x="0" y="262" width="740" height="68" rx="10"/>
+  <text class="capb" x="16" y="286">Which one for Min Cost to Connect All Points?</text>
+  <text class="cap" x="16" y="310"><tspan class="capb">Prim.</tspan> The graph is <tspan class="capb">complete</tspan> — every pair of points is an edge, so E = n². Kruskal would sort n² edges;</text>
+  <text class="cap" x="16" y="328">Prim never materialises them all. &#8220;Connect all&#8221; + &#8220;minimum total cost&#8221; = MST, every time — and dense means Prim.</text>
+</svg>
+<figcaption><b>Two routes to the same tree.</b> Prim looks almost identical to Dijkstra &mdash; the only change is that the heap key is the <em>edge weight</em>, not the cumulative distance. That one-line difference is worth stating explicitly, because it&rsquo;s a favourite follow-up question.</figcaption>
+</figure>
+
+<div class="two-col">
+<div>
+<h4>Prim&rsquo;s</h4>
+<pre><code>def prim(adj, n):
+    visited = set()
+    heap = [(0, 0)]        # (edge_weight, node)
+    total = 0
+    while heap and len(visited) &lt; n:
+        w, node = heapq.heappop(heap)
+        if node in visited:
+            continue
+        visited.add(node)
+        total += w
+        for nxt, wt in adj[node]:
+            if nxt not in visited:
+                heapq.heappush(heap, (wt, nxt))
+    return total</code></pre>
+</div>
+<div>
+<h4>Kruskal&rsquo;s</h4>
+<pre><code>edges.sort(key=lambda e: e[2])   # by weight
+total = 0
+for u, v, w in edges:
+    if union(u, v):    # False if already connected
+        total += w
+return total</code></pre>
+<p style="font-size:14.5px">Needs the union-find from the <a href="../Graphs/graphs.html">Graphs</a> section. Better when the graph is sparse or the edges arrive pre-sorted.</p>
+</div>
+</div>
+
+<h2>Bellman-Ford &mdash; shortest path with a hop limit</h2>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="Why a stop limit breaks Dijkstra and how layered relaxation fixes it">
+  <text class="capb t-bad" x="0" y="16">Why Dijkstra fails on &#8220;within K stops&#8221;</text>
+
+  <g class="sv-line">
+    <line x1="60" y1="90" x2="200" y2="50"/><line x1="200" y1="50" x2="340" y2="90"/>
+    <line x1="60" y1="90" x2="340" y2="150"/>
+  </g>
+  <circle class="sv-acc" cx="60"  cy="90"  r="22"/><text class="val" x="60"  y="96" text-anchor="middle">src</text>
+  <circle class="cell" cx="200" cy="50"  r="22"/><text class="val" x="200" y="56" text-anchor="middle">M</text>
+  <circle class="sv-good" cx="340" cy="120" r="22"/><text class="val" x="340" y="126" text-anchor="middle">dst</text>
+  <text class="tiny" x="130" y="62" text-anchor="middle">1</text>
+  <text class="tiny" x="278" y="74" text-anchor="middle">1</text>
+  <text class="tiny" x="200" y="136" text-anchor="middle">5 (direct)</text>
+
+  <text class="cap" x="400" y="60">Cheapest route: src→M→dst = <tspan class="capb">2</tspan>, but 1 stop.</text>
+  <text class="cap" x="400" y="84">Direct route: <tspan class="capb">5</tspan>, 0 stops.</text>
+  <text class="cap t-bad" x="400" y="116">With K = 0 the answer is 5 — yet Dijkstra</text>
+  <text class="cap t-bad" x="400" y="138">finalises dst at 2 and never reconsiders.</text>
+  <text class="tiny" x="400" y="162">Greedy finalisation assumes cost is all that matters. It isn&#8217;t.</text>
+
+  <text class="capb t-good" x="0" y="208">The fix: relax in rounds, one hop per round</text>
+  <g>
+    <rect class="sv-good" x="0"   y="222" width="170" height="40" rx="6"/><text class="val" x="85"  y="248" text-anchor="middle">round 0: ≤ 1 edge</text>
+    <rect class="sv-good" x="182" y="222" width="170" height="40" rx="6"/><text class="val" x="267" y="248" text-anchor="middle">round 1: ≤ 2 edges</text>
+    <rect class="sv-good" x="364" y="222" width="170" height="40" rx="6"/><text class="val" x="449" y="248" text-anchor="middle">round 2: ≤ 3 edges</text>
+    <rect class="cell"    x="546" y="222" width="194" height="40" rx="6"/><text class="val" x="643" y="248" text-anchor="middle">… k+1 rounds total</text>
+  </g>
+  <text class="cap" x="0" y="290">Each round reads a <tspan class="capb">frozen snapshot</tspan> of the previous round&#8217;s distances (<tspan class="sv-mono">tmp = prices[:]</tspan>). Without that copy, a</text>
+  <text class="cap" x="0" y="312">value updated earlier in the same round could be used again in it — letting a path sneak in more hops than the limit allows.</text>
+</svg>
+<figcaption><b>Cheapest Flights Within K Stops.</b> The frozen copy is the line people leave out, and it fails subtly: the answer is too cheap, using more stops than permitted. The alternative is a BFS whose queue entries carry <code>(cost, node, stops)</code>.</figcaption>
+</figure>
+
+<pre><code>prices = [float("inf")] * n
+prices[src] = 0
+for _ in range(k + 1):              # at most k stops = k+1 edges
+    tmp = prices[:]                 # freeze this round's values
+    for u, v, w in flights:
+        if prices[u] + w &lt; tmp[v]:
+            tmp[v] = prices[u] + w
+    prices = tmp
+return -1 if prices[dst] == float("inf") else prices[dst]
+</code></pre>
+
+<h2>Hierholzer&rsquo;s algorithm &mdash; Eulerian path</h2>
+
+<p>Reconstruct Itinerary: use every ticket exactly once, choosing the lexicographically smallest route. The algorithm is short and its correctness is genuinely non-obvious.</p>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Hierholzer's algorithm appending nodes after their edges are exhausted, then reversing">
+  <text class="capb" x="0" y="16">Why the route is built <tspan class="capb">backwards</tspan></text>
+
+  <g class="sv-line">
+    <line x1="70" y1="90" x2="200" y2="90"/><line x1="200" y1="90" x2="330" y2="90"/>
+    <line x1="200" y1="90" x2="200" y2="190"/>
+  </g>
+  <circle class="sv-acc" cx="70"  cy="90"  r="22"/><text class="val" x="70"  y="96" text-anchor="middle">JFK</text>
+  <circle class="cell" cx="200" cy="90"  r="22"/><text class="val" x="200" y="96" text-anchor="middle">A</text>
+  <circle class="sv-bad" cx="330" cy="90"  r="22"/><text class="val" x="330" y="96" text-anchor="middle">B</text>
+  <circle class="cell" cx="200" cy="212" r="22"/><text class="val" x="200" y="218" text-anchor="middle">C</text>
+  <text class="tiny t-bad" x="330" y="60" text-anchor="middle">dead end — no outgoing edges</text>
+
+  <text class="cap" x="400" y="70">Walking greedily from JFK, you may reach B</text>
+  <text class="cap" x="400" y="92">and get stuck while edges elsewhere remain.</text>
+  <text class="cap t-good" x="400" y="124">Hierholzer&#8217;s handles this: a node is only</text>
+  <text class="cap t-good" x="400" y="146">appended to the route <tspan class="capb">after</tspan> all its edges are</text>
+  <text class="cap t-good" x="400" y="168">used up, so dead ends land at the <tspan class="capb">end</tspan> of the</text>
+  <text class="cap t-good" x="400" y="190">route — which becomes the front after reversing.</text>
+
+  <rect class="panel" x="0" y="252" width="740" height="78" rx="10"/>
+  <text class="capb" x="16" y="276">Lexicographic order for free</text>
+  <text class="cap" x="16" y="300">Keep each node&#8217;s destinations in a sorted structure and always take the smallest first. Because the algorithm is</text>
+  <text class="cap" x="16" y="322">correct for <tspan class="capb">any</tspan> greedy choice, taking the smallest available yields the smallest valid itinerary with no extra work.</text>
+</svg>
+<figcaption><b>Post-order, then reverse.</b> The structure is identical to a post-order DFS: exhaust everything below, then record yourself. If it feels backwards, that&rsquo;s because it is &mdash; deliberately.</figcaption>
+</figure>
+
+<pre><code>def hierholzer(adj, start):         # adj[node] = sorted deque of destinations
+    route = []
+    stack = [start]
+    while stack:
+        while adj[stack[-1]]:
+            stack.append(adj[stack[-1]].popleft())
+        route.append(stack.pop())
+    return route[::-1]
+</code></pre>
+
+<h2>Alien Dictionary &mdash; topological sort under uncertainty</h2>
+
+<p>The algorithm is a plain topological sort. The hard part is <em>constructing the graph</em> from a word list.</p>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Deriving letter ordering constraints from adjacent words, including the prefix edge case">
+  <text class="capb" x="0" y="16">Each adjacent pair of words yields at most ONE constraint</text>
+
+  <g>
+    <rect class="cell" x="0"   y="34" width="150" height="38" rx="5"/><text class="val" x="75"  y="59" text-anchor="middle">"wrt"</text>
+    <rect class="cell" x="0"   y="78" width="150" height="38" rx="5"/><text class="val" x="75"  y="103" text-anchor="middle">"wrf"</text>
+  </g>
+  <text class="cap" x="170" y="62">first differing char: <tspan class="capb">t</tspan> vs <tspan class="capb">f</tspan></text>
+  <text class="cap t-good" x="170" y="84">&#8594; edge <tspan class="sv-mono">t → f</tspan>, then <tspan class="capb">stop comparing</tspan></text>
+  <text class="tiny" x="170" y="106">later characters tell you nothing — the order was already decided</text>
+
+  <g>
+    <rect class="cell" x="0"   y="140" width="150" height="38" rx="5"/><text class="val" x="75"  y="165" text-anchor="middle">"er"</text>
+    <rect class="cell" x="0"   y="184" width="150" height="38" rx="5"/><text class="val" x="75"  y="209" text-anchor="middle">"ett"</text>
+  </g>
+  <text class="cap" x="170" y="168">first differing char: <tspan class="capb">r</tspan> vs <tspan class="capb">t</tspan></text>
+  <text class="cap t-good" x="170" y="190">&#8594; edge <tspan class="sv-mono">r → t</tspan></text>
+
+  <rect class="sv-bad" x="0" y="240" width="740" height="86" rx="10"/>
+  <text class="capb t-bad" x="18" y="264">The edge case that fails half of all submissions</text>
+  <text class="cap" x="18" y="290"><tspan class="sv-mono">["abcd", "ab"]</tspan> — the second word is a strict <tspan class="capb">prefix</tspan> of the first, but comes after it. No valid ordering</text>
+  <text class="cap" x="18" y="312">of letters can produce that, so return <tspan class="sv-mono">""</tspan> immediately. Check it <tspan class="capb">before</tspan> scanning for a differing character.</text>
+</svg>
+<figcaption><b>Alien Dictionary.</b> Once the edges exist, it&rsquo;s Kahn&rsquo;s algorithm from the <a href="../Graphs/graphs.html">Graphs</a> section &mdash; and if the topological sort can&rsquo;t consume every letter, there&rsquo;s a cycle, so the ordering is contradictory and you return <code>""</code>. Remember to seed the node set with <em>every</em> letter that appears, including ones with no constraints.</figcaption>
+</figure>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Minimum Spanning Tree</b></td><td>Prim&rsquo;s over a complete graph where edge weight = Manhattan distance (or Kruskal&rsquo;s on all pairs). &ldquo;Connect all&rdquo; + &ldquo;minimum total cost&rdquo; = MST, every time.</td><td>Min Cost to Connect All Points <span class="tag med">med</span></td></tr>
+<tr><td><b>2. Dijkstra</b></td><td>Single-source shortest weighted path. Network Delay Time = the max finalised distance; Swim uses <code>max</code> instead of <code>+</code> as the cost combiner.</td><td>Network Delay Time <span class="tag med">med</span>, Swim in Rising Water <span class="tag hard">hard</span></td></tr>
+<tr><td><b>3. Shortest path with a constraint</b></td><td>Looks like Dijkstra but the &ldquo;at most K stops&rdquo; cap breaks greedy finalisation, so it&rsquo;s Bellman-Ford (relax K+1 times) or a BFS tracking (cost, stops).</td><td>Cheapest Flights Within K Stops <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Topological sort under uncertainty</b></td><td>Derive edges by comparing adjacent words letter by letter, then topologically sort the letters; detect cycles (invalid ordering → return <code>""</code>).</td><td>Alien Dictionary / Foreign Dictionary <span class="tag hard">hard</span></td></tr>
+<tr><td><b>5. Eulerian path</b></td><td>Use every ticket exactly once, lexicographically smallest — Hierholzer&rsquo;s with destinations kept sorted.</td><td>Reconstruct Itinerary <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Network Delay Time</b><span class="why">The cleanest Dijkstra — get the min-heap template solid, including lazy deletion.</span></li>
+<li><b>Min Cost to Connect All Points</b><span class="why">Prim&rsquo;s MST — same heap shape, edge-weight key instead of cumulative cost.</span></li>
+<li><b>Swim in Rising Water</b><span class="why">Dijkstra variant — path cost is a max, not a sum. One-character change to the combine step.</span></li>
+<li><b>Cheapest Flights Within K Stops</b><span class="why">Bellman-Ford — and understand <em>why</em> the K limit breaks plain Dijkstra.</span></li>
+<li><b>Reconstruct Itinerary</b><span class="why">Eulerian path / Hierholzer&rsquo;s — a new shape entirely. Post-order, then reverse.</span></li>
+<li class="boss"><b>Alien Dictionary / Foreign Dictionary</b><span class="why">Topological sort; deriving the edges (and the prefix edge case) is the hard part.</span></li>
+</ol>
+
+<p>Do Network Delay Time first even though NeetCode lists Reconstruct Itinerary first &mdash; Dijkstra is the foundational template three of these six reuse, and it&rsquo;s the cleanest place to build the heap muscle memory. Save Alien Dictionary for last; the algorithm is a plain topo sort, but constructing the graph from the word list is the trickiest reasoning in the section.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Algorithm</th><th>Time</th><th>Space</th></tr></thead>
+<tbody>
+<tr><td>Network Delay Time</td><td>Dijkstra</td><td>O(E log V)</td><td>O(V + E)</td></tr>
+<tr><td>Min Cost to Connect All Points</td><td>Prim&rsquo;s (dense)</td><td>O(n² log n)</td><td>O(n²)</td></tr>
+<tr><td>Swim in Rising Water</td><td>Dijkstra with max-combine</td><td>O(n² log n)</td><td>O(n²)</td></tr>
+<tr><td>Cheapest Flights Within K Stops</td><td>Bellman-Ford</td><td>O(k · E)</td><td>O(V)</td></tr>
+<tr><td>Reconstruct Itinerary</td><td>Hierholzer&rsquo;s</td><td>O(E log E)</td><td>O(E)</td></tr>
+<tr><td>Alien Dictionary</td><td>Topological sort</td><td>O(total chars)</td><td>O(1) — 26 letters</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — Dijkstra with negative weights</span>
+  <p>The greedy finalisation is invalid. Use Bellman-Ford. If asked &ldquo;what if edges can be negative?&rdquo;, this is the expected answer.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — forgetting the frozen copy in Bellman-Ford</span>
+  <p>Without <code>tmp = prices[:]</code>, one round can chain multiple hops and quietly exceed the K limit.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — using cumulative distance as Prim&rsquo;s heap key</span>
+  <p>Prim minimises the <em>next edge</em>, not the distance from the start. Using Dijkstra&rsquo;s key builds a shortest-path tree, which is a different (and usually more expensive) tree.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — missing the prefix case in Alien Dictionary</span>
+  <p><code>["abcd", "ab"]</code> must return <code>""</code>. Check it explicitly before looking for a differing character.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 5 — comparing beyond the first difference</span>
+  <p>Each adjacent word pair gives <em>at most one</em> constraint. Adding more invents orderings the input never implied.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Two lines, before any code</span>
+  <p>Write the algorithm&rsquo;s <b>name</b>, and <b>what your heap tuple (or DSU / in-degree structure) actually holds</b> &mdash; e.g. <code># Dijkstra; heap holds (total_time_so_far, node)</code>. Naming the algorithm and pinning down exactly what you&rsquo;re minimising is what turns these from &ldquo;hard&rdquo; into &ldquo;type the template.&rdquo;</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

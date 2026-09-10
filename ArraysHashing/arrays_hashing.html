@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrays &amp; Hashing — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="arrays" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Arrays &amp; Hashing</h1>
+<p class="deck">The section that installs the single most reusable instinct in the whole list: <em>can I trade memory for time by remembering what I&rsquo;ve already seen?</em></p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">9</div></div>
+  <div class="fact"><div class="k">Core tools</div><div class="v" style="font-size:14px">set · dict · Counter</div></div>
+  <div class="fact"><div class="k">Typical time</div><div class="v">O(n)</div></div>
+  <div class="fact"><div class="k">Typical space</div><div class="v">O(n)</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>Why this section comes first</h2>
+
+<p class="lead-in">Arrays &amp; Hashing is the first section in NeetCode 150 for a reason: it&rsquo;s where you build the reflex that carries the entire list &mdash; <strong>&ldquo;can I trade memory for time by remembering what I&rsquo;ve already seen?&rdquo;</strong> Almost every problem here is really a question about which lookup structure to reach for, and once that clicks, half the work is done before you write a loop.</p>
+
+<p>Notice what&rsquo;s <em>absent</em> from this section: there is no custom data structure to learn. No node class, no tree, no heap. The whole section is about wielding Python&rsquo;s built-in <code>set</code>, <code>dict</code>, and <code>list</code> well. That&rsquo;s deliberate &mdash; the pedagogical payload isn&rsquo;t a structure, it&rsquo;s a <em>move</em>. Every later section (Two Pointers, Sliding Window, Graphs, Heap) quietly assumes you&rsquo;ll reach for a hash map without thinking whenever the problem needs an O(1) &ldquo;have I seen this?&rdquo;</p>
+
+<p>So the goal for this section is not &ldquo;solve nine problems.&rdquo; It&rsquo;s to make one particular thought automatic, so that later, when you&rsquo;re neck-deep in Course Schedule or Word Ladder, the hash-map part of the solution costs you zero thinking budget.</p>
+
+<h2>The one idea: turn the inner loop into a lookup</h2>
+
+<p>Before writing any array/hashing code, ask one question:</p>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;As I walk through this array <em>once</em>, what do I need to remember about what I&rsquo;ve already passed, so that when I reach the current element I can answer in O(1)?&rdquo;</p>
+</div>
+
+<p>That &ldquo;what do I need to remember&rdquo; is almost always a <code>set</code> (membership: <em>have I seen this value?</em>) or a <code>dict</code> (mapping: <em>what index / count / group does this value belong to?</em>).</p>
+
+<p>Here is the shape of the transformation, and it is worth staring at until it feels obvious. The brute-force version of nearly every problem in this section is a nested double loop &mdash; O(n²) &mdash; and the hashing version replaces the inner loop with a single O(1) lookup into a structure you built <em>on the way in</em>.</p>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Comparison of a nested O(n squared) double loop against a single pass with a hash lookup">
+  <!-- left panel: brute force -->
+  <rect class="panel" x="0" y="0" width="352" height="330" rx="10"/>
+  <text class="capb" x="16" y="24">Brute force — O(n²)</text>
+  <text class="cap" x="16" y="43">for each i: scan every j to its right</text>
+
+  <!-- grid of comparisons -->
+  <g>
+    <!-- column headers -->
+    <text class="idx" x="60" y="70">j=0</text><text class="idx" x="106" y="70">1</text>
+    <text class="idx" x="146" y="70">2</text><text class="idx" x="186" y="70">3</text>
+    <text class="idx" x="226" y="70">4</text><text class="idx" x="266" y="70">5</text>
+  </g>
+  <g>
+    <text class="idx" x="20" y="94">i=0</text>
+    <text class="idx" x="20" y="124">1</text>
+    <text class="idx" x="20" y="154">2</text>
+    <text class="idx" x="20" y="184">3</text>
+    <text class="idx" x="20" y="214">4</text>
+    <text class="idx" x="20" y="244">5</text>
+  </g>
+  <!-- 15 dots for upper triangle -->
+  <g class="f-bad">
+    <circle cx="106" cy="90" r="5"/><circle cx="146" cy="90" r="5"/><circle cx="186" cy="90" r="5"/><circle cx="226" cy="90" r="5"/><circle cx="266" cy="90" r="5"/>
+    <circle cx="146" cy="120" r="5"/><circle cx="186" cy="120" r="5"/><circle cx="226" cy="120" r="5"/><circle cx="266" cy="120" r="5"/>
+    <circle cx="186" cy="150" r="5"/><circle cx="226" cy="150" r="5"/><circle cx="266" cy="150" r="5"/>
+    <circle cx="226" cy="180" r="5"/><circle cx="266" cy="180" r="5"/>
+    <circle cx="266" cy="210" r="5"/>
+  </g>
+  <text class="cap" x="16" y="272">Every dot is one comparison. For n = 6 that&#8217;s 15;</text>
+  <text class="cap" x="16" y="290">for n = 10,000 it&#8217;s ~50,000,000.</text>
+  <text class="tiny" x="16" y="312">Work grows with the square of the input.</text>
+
+  <!-- right panel: hashing -->
+  <rect class="panel" x="388" y="0" width="352" height="330" rx="10"/>
+  <text class="capb" x="404" y="24">With a hash structure — O(n)</text>
+  <text class="cap" x="404" y="43">one pass; the inner scan becomes one lookup</text>
+
+  <!-- array row -->
+  <g>
+    <rect class="cell" x="404" y="62" width="42" height="38" rx="5"/><text class="val" x="425" y="87" text-anchor="middle">2</text>
+    <rect class="cell" x="450" y="62" width="42" height="38" rx="5"/><text class="val" x="471" y="87" text-anchor="middle">7</text>
+    <rect class="sv-acc" x="496" y="62" width="42" height="38" rx="5"/><text class="val" x="517" y="87" text-anchor="middle">11</text>
+    <rect class="cell" x="542" y="62" width="42" height="38" rx="5"/><text class="val" x="563" y="87" text-anchor="middle">15</text>
+    <rect class="cell" x="588" y="62" width="42" height="38" rx="5"/><text class="val" x="609" y="87" text-anchor="middle">3</text>
+    <rect class="cell" x="634" y="62" width="42" height="38" rx="5"/><text class="val" x="655" y="87" text-anchor="middle">6</text>
+    <text class="tiny" x="517" y="116" text-anchor="middle">current</text>
+  </g>
+
+  <!-- arrow down to memory -->
+  <path class="s-acc" d="M517 124 L517 158"/>
+  <path class="f-acc" d="M517 166 l-5,-9 l10,0 z"/>
+  <text class="cap t-acc" x="530" y="148">one O(1) question</text>
+
+  <!-- memory box -->
+  <rect class="sv-info" x="430" y="170" width="270" height="86" rx="9"/>
+  <text class="capb" x="446" y="192">memory of everything already passed</text>
+  <text class="val" x="446" y="216">{ 2, 7 }</text>
+  <text class="cap" x="446" y="240">&#8220;have I seen X?&#8221; &#8594; yes / no, instantly</text>
+
+  <text class="cap" x="404" y="284">Each element is touched once and asks one question.</text>
+  <text class="cap" x="404" y="302">For n = 10,000 that&#8217;s ~10,000 steps, not 50 million.</text>
+  <text class="tiny" x="404" y="322">Cost: O(n) extra memory. That is the trade.</text>
+</svg>
+<figcaption><b>The whole section in one picture.</b> When you catch yourself about to write &ldquo;for each element, scan the rest of the array,&rdquo; stop &mdash; that inner scan is exactly the thing a hash structure removes. You pay O(n) memory and buy back a factor of n in time.</figcaption>
+</figure>
+
+<h2>How a hash table actually delivers O(1)</h2>
+
+<p>It&rsquo;s worth understanding <em>why</em> the lookup is free, because it explains the two constraints you&rsquo;ll bump into (keys must be hashable; worst case isn&rsquo;t really O(1)).</p>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="A hash function maps a key to a bucket index in a backing array">
+  <text class="capb" x="0" y="18">key</text>
+  <rect class="sv-acc" x="0" y="30" width="120" height="42" rx="7"/>
+  <text class="val" x="60" y="57" text-anchor="middle">"apple"</text>
+
+  <path class="s-acc" d="M124 51 L186 51"/>
+  <path class="f-acc" d="M194 51 l-9,-5 l0,10 z"/>
+
+  <text class="capb" x="206" y="18">hash function</text>
+  <rect class="sv-info" x="206" y="30" width="150" height="42" rx="7"/>
+  <text class="val" x="281" y="57" text-anchor="middle">hash(k) % 8</text>
+
+  <path class="s-acc" d="M360 51 L424 51"/>
+  <path class="f-acc" d="M432 51 l-9,-5 l0,10 z"/>
+
+  <text class="capb" x="444" y="18">bucket index</text>
+  <rect class="sv-good" x="444" y="30" width="70" height="42" rx="7"/>
+  <text class="val" x="479" y="57" text-anchor="middle">3</text>
+
+  <!-- backing array -->
+  <text class="capb" x="0" y="118">backing array of buckets</text>
+  <g>
+    <rect class="cell" x="0" y="130" width="88" height="44" rx="5"/><text class="idx" x="44" y="192" text-anchor="middle">0</text>
+    <rect class="cell" x="92" y="130" width="88" height="44" rx="5"/><text class="idx" x="136" y="192" text-anchor="middle">1</text>
+    <rect class="cell" x="184" y="130" width="88" height="44" rx="5"/><text class="idx" x="228" y="192" text-anchor="middle">2</text>
+    <rect class="sv-good" x="276" y="130" width="88" height="44" rx="5"/><text class="idx" x="320" y="192" text-anchor="middle">3</text>
+    <rect class="cell" x="368" y="130" width="88" height="44" rx="5"/><text class="idx" x="412" y="192" text-anchor="middle">4</text>
+    <rect class="sv-warn" x="460" y="130" width="88" height="44" rx="5"/><text class="idx" x="504" y="192" text-anchor="middle">5</text>
+    <rect class="cell" x="552" y="130" width="88" height="44" rx="5"/><text class="idx" x="596" y="192" text-anchor="middle">6</text>
+    <rect class="cell" x="644" y="130" width="88" height="44" rx="5"/><text class="idx" x="688" y="192" text-anchor="middle">7</text>
+  </g>
+  <text class="val" x="320" y="158" text-anchor="middle">apple</text>
+  <text class="val" x="504" y="158" text-anchor="middle">kiwi→fig</text>
+
+  <path class="s-good dash" d="M479 76 L479 100 L320 100 L320 126"/>
+
+  <text class="cap" x="0" y="228"><tspan class="capb">Jump straight to slot 3.</tspan> No scanning &#8212; the key computes its own address.</text>
+  <text class="cap" x="0" y="252"><tspan class="t-warn">Slot 5 shows a collision:</tspan> two keys landed in the same bucket, so that slot holds a small chain.</text>
+  <text class="cap" x="0" y="276">Python keeps the table sparse and resizes as it fills, so chains stay short and lookups stay ~O(1) on average.</text>
+</svg>
+<figcaption><b>Why lookup is constant time.</b> The key is converted to a number, that number is folded into a bucket index, and you index directly into an array. Nothing is searched. The <em>average</em> case is O(1); the theoretical worst case (everything colliding into one bucket) is O(n), which is why interviewers sometimes say &ldquo;amortized O(1).&rdquo;</figcaption>
+</figure>
+
+<div class="callout note">
+  <span class="ct">Two practical consequences</span>
+  <p><b>1. Keys must be hashable (immutable).</b> A <code>list</code> can&rsquo;t be a dict key because it can change, which would change its hash. That&rsquo;s exactly why Group Anagrams uses <code>tuple(sorted(s))</code> and not <code>sorted(s)</code> &mdash; the tuple is frozen, the list is not.</p>
+  <p><b>2. Insertion order is preserved</b> in Python 3.7+ dicts. Handy for problems where you want to read results back in the order you first met them, but never rely on it for correctness in an interview unless you say so out loud.</p>
+</div>
+
+<h2>The 30-second mental check</h2>
+
+<p>When an arrays problem lands in front of you, ask which of these you need. Naming the structure <em>and what its keys and values mean</em> before writing a loop is most of the work.</p>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>The question you&rsquo;re asking</th><th>Reach for</th><th>Shows up in</th></tr></thead>
+<tbody>
+<tr><td><b>Membership / duplicates?</b><br><span class="why">&ldquo;Have I seen this exact value?&rdquo;</span></td><td><code>set</code></td><td>Contains Duplicate; the start-check in Longest Consecutive Sequence</td></tr>
+<tr><td><b>Counting / frequency?</b><br><span class="why">&ldquo;How many times does each thing appear?&rdquo;</span></td><td><code>dict</code> / <code>Counter</code></td><td>Valid Anagram, Top K Frequent, Group Anagrams</td></tr>
+<tr><td><b>Remembering <em>where</em> something was?</b><br><span class="why">&ldquo;I need the position of the complement.&rdquo;</span></td><td><code>dict</code>: value → index</td><td>Two Sum</td></tr>
+<tr><td><b>Grouping things that share a key?</b><br><span class="why">&ldquo;Everything with the same sorted letters goes in one bucket.&rdquo;</span></td><td><code>defaultdict(list)</code></td><td>Group Anagrams</td></tr>
+<tr><td><b>No extra structure, just index arithmetic?</b><br><span class="why">Constraints forbid the obvious tool.</span></td><td>prefix / suffix passes</td><td>Product of Array Except Self</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Your Python toolkit</h2>
+
+<p>Four built-ins do everything in this section. Know their costs cold &mdash; interviewers ask.</p>
+
+<div class="code-label">the four tools</div>
+<pre><code>from collections import Counter, defaultdict
+
+seen   = set()                 # membership only, no values
+seen.add(x); x in seen         # O(1) average
+
+index  = {}                    # value -> index (or anything -> anything)
+index[x] = i; index.get(x, 0)  # O(1) average
+
+count  = Counter(nums)         # value -> how many times, built in O(n)
+count.most_common(k)           # k most frequent, O(n log n) internally
+
+groups = defaultdict(list)     # missing key auto-creates an empty list
+groups[key].append(s)          # no "if key not in groups" boilerplate
+</code></pre>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Operation</th><th>list</th><th>set</th><th>dict</th></tr></thead>
+<tbody>
+<tr><td><code>x in c</code></td><td class="t-bad">O(n)</td><td class="t-good">O(1)</td><td class="t-good">O(1) (keys)</td></tr>
+<tr><td>add / insert at end</td><td class="t-good">O(1) amortized</td><td class="t-good">O(1)</td><td class="t-good">O(1)</td></tr>
+<tr><td>delete a known element</td><td class="t-bad">O(n)</td><td class="t-good">O(1)</td><td class="t-good">O(1)</td></tr>
+<tr><td>index by position</td><td class="t-good">O(1)</td><td>—</td><td>—</td></tr>
+<tr><td>keeps order</td><td>yes</td><td>no</td><td>yes (3.7+)</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout trap">
+  <span class="ct">The one-line bug that costs the interview</span>
+  <p>Writing <code>if x in my_list</code> inside a loop. That&rsquo;s an O(n) scan hiding inside what you think is an O(n) algorithm &mdash; you just wrote O(n²) and it looks like O(n). Convert to a <code>set</code> first, every single time.</p>
+</div>
+
+<h2>Technique families</h2>
+
+<h3>1. Counting with a dict</h3>
+
+<p>The workhorse. Build a frequency map in one pass, then read from it:</p>
+
+<pre><code>from collections import Counter
+count = Counter(nums)          # {value: how many times}
+
+# the manual version, if asked not to use Counter:
+count = {}
+for x in nums:
+    count[x] = count.get(x, 0) + 1
+</code></pre>
+
+<p>Two strings are anagrams <em>iff</em> their Counters are equal &mdash; that&rsquo;s the entire Valid Anagram problem, one line:</p>
+
+<pre><code>def isAnagram(s, t):
+    return Counter(s) == Counter(t)
+</code></pre>
+
+<p>The interview-friendly version avoids the library and shows you understand the mechanism: build one counter from <code>s</code>, decrement it with <code>t</code>, and assert every count landed back on zero. If any count goes negative or any key is left over, they differ.</p>
+
+<div class="callout tip">
+  <span class="ct">Say this out loud</span>
+  <p>&ldquo;Sorting both strings also works and is O(n log n) with O(1) extra space; counting is O(n) time and O(k) space where k is the alphabet size. Which trade do you want?&rdquo; That sentence alone demonstrates the thing the question is testing.</p>
+</div>
+
+<h3>2. Complement lookup — the Two Sum move</h3>
+
+<p>Instead of searching for two things that combine to a target, fix one and look up the <em>other one you&rsquo;d need</em>. This is the single most important pattern in the section, and it recurs for the rest of your life as an interviewee.</p>
+
+<pre><code>seen = {}                      # value -> index
+for i, x in enumerate(nums):
+    if target - x in seen:
+        return [seen[target - x], i]
+    seen[x] = i
+</code></pre>
+
+<p>The subtlety worth internalising: you build the map <em>as you go</em>, so each element only ever looks <strong>backward</strong> at what&rsquo;s already stored. That&rsquo;s why you don&rsquo;t need a second pass, and why an element can never pair with itself &mdash; it isn&rsquo;t in the map yet when it asks.</p>
+
+<figure>
+<svg viewBox="0 0 740 336" role="img" aria-label="Step by step trace of the Two Sum complement lookup">
+  <text class="capb" x="0" y="16">nums = [2, 7, 11, 15]   ·   target = 9</text>
+
+  <!-- step 1 -->
+  <text class="cap" x="0" y="52">i = 0</text>
+  <g>
+    <rect class="sv-acc" x="56" y="34" width="44" height="36" rx="5"/><text class="val" x="78" y="58" text-anchor="middle">2</text>
+    <rect class="cell" x="104" y="34" width="44" height="36" rx="5"/><text class="val" x="126" y="58" text-anchor="middle">7</text>
+    <rect class="cell" x="152" y="34" width="44" height="36" rx="5"/><text class="val" x="174" y="58" text-anchor="middle">11</text>
+    <rect class="cell" x="200" y="34" width="44" height="36" rx="5"/><text class="val" x="222" y="58" text-anchor="middle">15</text>
+  </g>
+  <text class="cap" x="266" y="50">need 9 &#8722; 2 = <tspan class="capb">7</tspan> &#8212; not in <tspan class="sv-mono">seen</tspan></text>
+  <text class="cap" x="266" y="68">so store <tspan class="sv-mono">seen[2] = 0</tspan></text>
+  <rect class="sv-info" x="560" y="34" width="176" height="36" rx="7"/>
+  <text class="val" x="574" y="58">seen = {2: 0}</text>
+
+  <!-- step 2 -->
+  <text class="cap" x="0" y="126">i = 1</text>
+  <g>
+    <rect class="sv-good" x="56" y="108" width="44" height="36" rx="5"/><text class="val" x="78" y="132" text-anchor="middle">2</text>
+    <rect class="sv-acc" x="104" y="108" width="44" height="36" rx="5"/><text class="val" x="126" y="132" text-anchor="middle">7</text>
+    <rect class="cell" x="152" y="108" width="44" height="36" rx="5"/><text class="val" x="174" y="132" text-anchor="middle">11</text>
+    <rect class="cell" x="200" y="108" width="44" height="36" rx="5"/><text class="val" x="222" y="132" text-anchor="middle">15</text>
+  </g>
+  <text class="cap" x="266" y="124">need 9 &#8722; 7 = <tspan class="capb t-good">2</tspan> &#8212; <tspan class="t-good">found!</tspan></text>
+  <text class="cap" x="266" y="142">return <tspan class="sv-mono">[seen[2], 1]</tspan> = <tspan class="sv-mono">[0, 1]</tspan></text>
+  <rect class="sv-info" x="560" y="108" width="176" height="36" rx="7"/>
+  <text class="val" x="574" y="132">seen = {2: 0}</text>
+
+  <path class="s-good" d="M300 150 L300 172 L620 172 L620 152"/>
+  <path class="f-good" d="M620 146 l-5,9 l10,0 z"/>
+  <text class="cap t-good" x="386" y="190">the lookup that replaced the whole inner loop</text>
+
+  <!-- the contrast -->
+  <line class="sv-line dash" x1="0" y1="212" x2="740" y2="212"/>
+  <text class="capb" x="0" y="238">Why looking only backward is enough</text>
+  <text class="cap" x="0" y="262">Any valid pair has a left element and a right element. When the loop reaches the <tspan class="capb">right</tspan> one,</text>
+  <text class="cap" x="0" y="282">the left one is already in <tspan class="sv-mono">seen</tspan>. So every pair gets checked exactly once &#8212; at the moment its</text>
+  <text class="cap" x="0" y="302">second member arrives. No pair can be missed, and none is examined twice.</text>
+  <text class="tiny" x="0" y="326">This &#8220;each pair is discovered by its later member&#8221; argument is the proof you should give when asked why one pass suffices.</text>
+</svg>
+<figcaption><b>Two Sum, traced.</b> The dict is not a lookup table you build first &mdash; it is a growing memory of the past. That&rsquo;s the difference between the two-pass version and the elegant one-pass version.</figcaption>
+</figure>
+
+<h3>3. Canonical key / signature grouping</h3>
+
+<p>When you need to group items that are &ldquo;the same&rdquo; under some transformation, compute a key that is <em>identical for all members of a group</em> and bucket by it. The art is choosing the signature.</p>
+
+<pre><code>from collections import defaultdict
+groups = defaultdict(list)
+for s in strs:
+    key = tuple(sorted(s))     # or a 26-length count tuple
+    groups[key].append(s)
+return list(groups.values())
+</code></pre>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Group Anagrams: each word is reduced to a canonical key and dropped into a bucket">
+  <text class="capb" x="0" y="16">input words</text>
+  <text class="capb" x="250" y="16">canonical key</text>
+  <text class="capb" x="500" y="16">buckets</text>
+
+  <g>
+    <rect class="cell" x="0" y="30" width="110" height="34" rx="6"/><text class="val" x="55" y="53" text-anchor="middle">"eat"</text>
+    <rect class="cell" x="0" y="72" width="110" height="34" rx="6"/><text class="val" x="55" y="95" text-anchor="middle">"tea"</text>
+    <rect class="cell" x="0" y="114" width="110" height="34" rx="6"/><text class="val" x="55" y="137" text-anchor="middle">"tan"</text>
+    <rect class="cell" x="0" y="156" width="110" height="34" rx="6"/><text class="val" x="55" y="179" text-anchor="middle">"ate"</text>
+    <rect class="cell" x="0" y="198" width="110" height="34" rx="6"/><text class="val" x="55" y="221" text-anchor="middle">"nat"</text>
+    <rect class="cell" x="0" y="240" width="110" height="34" rx="6"/><text class="val" x="55" y="263" text-anchor="middle">"bat"</text>
+  </g>
+
+  <g class="s-acc">
+    <path d="M114 47 L244 47"/><path d="M114 89 L244 55"/><path d="M114 131 L244 131"/>
+    <path d="M114 173 L244 63"/><path d="M114 215 L244 139"/><path d="M114 257 L244 215"/>
+  </g>
+
+  <g>
+    <rect class="sv-acc" x="250" y="30" width="120" height="40" rx="6"/><text class="val" x="310" y="55" text-anchor="middle">('a','e','t')</text>
+    <rect class="sv-info" x="250" y="112" width="120" height="40" rx="6"/><text class="val" x="310" y="137" text-anchor="middle">('a','n','t')</text>
+    <rect class="sv-good" x="250" y="196" width="120" height="40" rx="6"/><text class="val" x="310" y="221" text-anchor="middle">('a','b','t')</text>
+  </g>
+
+  <g class="s-acc">
+    <path d="M374 50 L494 50"/><path d="M374 132 L494 132"/><path d="M374 216 L494 216"/>
+  </g>
+
+  <g>
+    <rect class="sv-acc" x="500" y="30" width="230" height="40" rx="6"/><text class="val" x="516" y="55">["eat", "tea", "ate"]</text>
+    <rect class="sv-info" x="500" y="112" width="230" height="40" rx="6"/><text class="val" x="516" y="137">["tan", "nat"]</text>
+    <rect class="sv-good" x="500" y="196" width="230" height="40" rx="6"/><text class="val" x="516" y="221">["bat"]</text>
+  </g>
+
+  <text class="cap" x="250" y="268">Sorting each word costs O(k log k); a 26-slot count tuple does it in O(k).</text>
+  <text class="tiny" x="250" y="290">The key must be a tuple, not a list &#8212; dict keys have to be hashable.</text>
+</svg>
+<figcaption><b>Signature grouping.</b> &ldquo;Same under some transformation&rdquo; becomes &ldquo;same key.&rdquo; Once you frame it that way, the dict does all the work. The identical move reappears whenever you need to detect equivalence classes.</figcaption>
+</figure>
+
+<h3>4. Bucket sort by frequency</h3>
+
+<p>When a problem says &ldquo;top k most frequent,&rdquo; you don&rsquo;t need a full sort <em>or</em> a heap. The insight is a bound: no value can appear more than <code>len(nums)</code> times, so counts live in a small known range &mdash; and anything in a small known range can be used as an <em>array index</em> instead of a sort key.</p>
+
+<pre><code>freq = [[] for _ in range(len(nums) + 1)]   # freq[c] = values that appear c times
+for val, c in Counter(nums).items():
+    freq[c].append(val)
+
+res = []
+for c in range(len(freq) - 1, 0, -1):       # walk from the high-count end
+    for val in freq[c]:
+        res.append(val)
+        if len(res) == k:
+            return res
+</code></pre>
+
+<figure>
+<svg viewBox="0 0 740 268" role="img" aria-label="Bucket sort by frequency: counts index into an array of buckets, read from the high end">
+  <text class="capb" x="0" y="16">nums = [1, 1, 1, 2, 2, 3]   &#8594;   Counter = {1: 3, 2: 2, 3: 1}</text>
+
+  <text class="cap" x="0" y="48">freq[count] = values appearing that many times</text>
+  <g>
+    <rect class="cell" x="0" y="60" width="104" height="46" rx="6"/><text class="val" x="52" y="88" text-anchor="middle">[ ]</text><text class="idx" x="52" y="124" text-anchor="middle">count 0</text>
+    <rect class="sv-good" x="108" y="60" width="104" height="46" rx="6"/><text class="val" x="160" y="88" text-anchor="middle">[3]</text><text class="idx" x="160" y="124" text-anchor="middle">count 1</text>
+    <rect class="sv-info" x="216" y="60" width="104" height="46" rx="6"/><text class="val" x="268" y="88" text-anchor="middle">[2]</text><text class="idx" x="268" y="124" text-anchor="middle">count 2</text>
+    <rect class="sv-acc" x="324" y="60" width="104" height="46" rx="6"/><text class="val" x="376" y="88" text-anchor="middle">[1]</text><text class="idx" x="376" y="124" text-anchor="middle">count 3</text>
+    <rect class="cell" x="432" y="60" width="104" height="46" rx="6"/><text class="val" x="484" y="88" text-anchor="middle">[ ]</text><text class="idx" x="484" y="124" text-anchor="middle">count 4</text>
+    <rect class="cell" x="540" y="60" width="104" height="46" rx="6"/><text class="val" x="592" y="88" text-anchor="middle">[ ]</text><text class="idx" x="592" y="124" text-anchor="middle">count 5</text>
+    <rect class="cell" x="648" y="60" width="88" height="46" rx="6"/><text class="val" x="692" y="88" text-anchor="middle">[ ]</text><text class="idx" x="692" y="124" text-anchor="middle">count 6</text>
+  </g>
+
+  <path class="s-acc" d="M712 148 L60 148"/>
+  <path class="f-acc" d="M52 148 l9,-5 l0,10 z"/>
+  <text class="cap t-acc" x="300" y="168">read from the right &#8212; the first k values you meet are the k most frequent</text>
+
+  <text class="cap" x="0" y="204"><tspan class="capb">Why this beats sorting:</tspan> a sort is O(n log n) because it compares. Here you never compare &#8212;</text>
+  <text class="cap" x="0" y="224">you use the count itself as an address. Building the buckets is O(n), reading them is O(n).</text>
+  <text class="cap" x="0" y="244">Total: <tspan class="capb t-good">O(n)</tspan>, better than the heap solution&#8217;s O(n log k) and the sort&#8217;s O(n log n).</text>
+</svg>
+<figcaption><b>Counting/bucket sort.</b> Whenever the values you&rsquo;d sort by are bounded small integers, indexing beats comparing. That&rsquo;s the general principle; &ldquo;top k frequent&rdquo; is just its most famous instance.</figcaption>
+</figure>
+
+<h3>5. Prefix / suffix passes</h3>
+
+<p>Some problems that <em>look</em> like they need a hash are actually solved by walking the array twice &mdash; once left-to-right accumulating a running result, once right-to-left &mdash; and combining. Product of Array Except Self is the canonical example, and it exists specifically to stop you reaching for the hash reflex on autopilot.</p>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="Prefix and suffix product passes combining into the answer">
+  <text class="capb" x="0" y="16">nums = [1, 2, 3, 4]   &#8212;   answer[i] = product of everything except nums[i]</text>
+
+  <!-- nums row -->
+  <text class="cap" x="0" y="52">nums</text>
+  <g>
+    <rect class="cell" x="90" y="34" width="120" height="34" rx="5"/><text class="val" x="150" y="57" text-anchor="middle">1</text>
+    <rect class="cell" x="214" y="34" width="120" height="34" rx="5"/><text class="val" x="274" y="57" text-anchor="middle">2</text>
+    <rect class="cell" x="338" y="34" width="120" height="34" rx="5"/><text class="val" x="398" y="57" text-anchor="middle">3</text>
+    <rect class="cell" x="462" y="34" width="120" height="34" rx="5"/><text class="val" x="522" y="57" text-anchor="middle">4</text>
+  </g>
+
+  <!-- prefix -->
+  <text class="cap t-info" x="0" y="106">prefix</text>
+  <text class="tiny" x="0" y="122">(product to the left)</text>
+  <g>
+    <rect class="sv-info" x="90" y="88" width="120" height="34" rx="5"/><text class="val" x="150" y="111" text-anchor="middle">1</text>
+    <rect class="sv-info" x="214" y="88" width="120" height="34" rx="5"/><text class="val" x="274" y="111" text-anchor="middle">1</text>
+    <rect class="sv-info" x="338" y="88" width="120" height="34" rx="5"/><text class="val" x="398" y="111" text-anchor="middle">1·2 = 2</text>
+    <rect class="sv-info" x="462" y="88" width="120" height="34" rx="5"/><text class="val" x="522" y="111" text-anchor="middle">1·2·3 = 6</text>
+  </g>
+  <path class="s-info" d="M96 78 L570 78"/><path class="f-info" d="M578 78 l-9,-5 l0,10 z"/>
+
+  <!-- suffix -->
+  <text class="cap t-warn" x="0" y="176">suffix</text>
+  <text class="tiny" x="0" y="192">(product to the right)</text>
+  <g>
+    <rect class="sv-warn" x="90" y="158" width="120" height="34" rx="5"/><text class="val" x="150" y="181" text-anchor="middle">2·3·4 = 24</text>
+    <rect class="sv-warn" x="214" y="158" width="120" height="34" rx="5"/><text class="val" x="274" y="181" text-anchor="middle">3·4 = 12</text>
+    <rect class="sv-warn" x="338" y="158" width="120" height="34" rx="5"/><text class="val" x="398" y="181" text-anchor="middle">4</text>
+    <rect class="sv-warn" x="462" y="158" width="120" height="34" rx="5"/><text class="val" x="522" y="181" text-anchor="middle">1</text>
+  </g>
+  <path class="s-warn" d="M576 148 L102 148"/><path class="f-warn" d="M94 148 l9,-5 l0,10 z"/>
+
+  <!-- product -->
+  <text class="cap" x="270" y="222">×</text>
+  <text class="capb t-acc" x="0" y="252">answer</text>
+  <g>
+    <rect class="sv-acc" x="90" y="234" width="120" height="34" rx="5"/><text class="val" x="150" y="257" text-anchor="middle">24</text>
+    <rect class="sv-acc" x="214" y="234" width="120" height="34" rx="5"/><text class="val" x="274" y="257" text-anchor="middle">12</text>
+    <rect class="sv-acc" x="338" y="234" width="120" height="34" rx="5"/><text class="val" x="398" y="257" text-anchor="middle">8</text>
+    <rect class="sv-acc" x="462" y="234" width="120" height="34" rx="5"/><text class="val" x="522" y="257" text-anchor="middle">6</text>
+  </g>
+
+  <text class="cap" x="0" y="298">Trick for O(1) extra space: write the prefix pass straight into the output array, then multiply</text>
+  <text class="cap" x="0" y="316">it by a single running suffix variable on the way back. No second array needed.</text>
+</svg>
+<figcaption><b>Two passes, no division.</b> Every element&rsquo;s answer is &ldquo;everything to my left&rdquo; times &ldquo;everything to my right.&rdquo; The <code>no division</code> constraint exists to push you toward this decomposition instead of &ldquo;total / nums[i]&rdquo; (which also breaks on zeros).</figcaption>
+</figure>
+
+<h3>6. Set membership plus a &ldquo;start of run&rdquo; test</h3>
+
+<p>Longest Consecutive Sequence is the cleverest problem in the section, and its trick is a beautiful example of using a set for something other than deduplication. The naive approach &mdash; for each number, walk upward counting &mdash; is O(n²) because long runs get re-walked from every member. The fix is one guard clause:</p>
+
+<pre><code>nums_set = set(nums)
+best = 0
+for n in nums_set:
+    if n - 1 in nums_set:      # not the start of a run -> skip entirely
+        continue
+    length = 1
+    while n + length in nums_set:
+        length += 1
+    best = max(best, length)
+return best
+</code></pre>
+
+<figure>
+<svg viewBox="0 0 740 264" role="img" aria-label="Longest consecutive sequence: only numbers with no predecessor begin a walk">
+  <text class="capb" x="0" y="16">nums = [100, 4, 200, 1, 3, 2]   &#8594;   set for O(1) membership</text>
+
+  <g>
+    <rect class="sv-acc" x="0" y="36" width="86" height="42" rx="6"/><text class="val" x="43" y="63" text-anchor="middle">1</text>
+    <rect class="cell" x="94" y="36" width="86" height="42" rx="6"/><text class="val" x="137" y="63" text-anchor="middle">2</text>
+    <rect class="cell" x="188" y="36" width="86" height="42" rx="6"/><text class="val" x="231" y="63" text-anchor="middle">3</text>
+    <rect class="cell" x="282" y="36" width="86" height="42" rx="6"/><text class="val" x="325" y="63" text-anchor="middle">4</text>
+    <rect class="sv-acc" x="400" y="36" width="86" height="42" rx="6"/><text class="val" x="443" y="63" text-anchor="middle">100</text>
+    <rect class="sv-acc" x="520" y="36" width="86" height="42" rx="6"/><text class="val" x="563" y="63" text-anchor="middle">200</text>
+  </g>
+
+  <text class="tiny t-acc" x="43" y="96" text-anchor="middle">0 absent</text>
+  <text class="tiny t-acc" x="43" y="110" text-anchor="middle">START</text>
+  <text class="tiny" x="137" y="96" text-anchor="middle">1 present</text>
+  <text class="tiny" x="137" y="110" text-anchor="middle">skip</text>
+  <text class="tiny" x="231" y="96" text-anchor="middle">2 present</text>
+  <text class="tiny" x="231" y="110" text-anchor="middle">skip</text>
+  <text class="tiny" x="325" y="96" text-anchor="middle">3 present</text>
+  <text class="tiny" x="325" y="110" text-anchor="middle">skip</text>
+  <text class="tiny t-acc" x="443" y="96" text-anchor="middle">99 absent</text>
+  <text class="tiny t-acc" x="443" y="110" text-anchor="middle">START</text>
+  <text class="tiny t-acc" x="563" y="96" text-anchor="middle">199 absent</text>
+  <text class="tiny t-acc" x="563" y="110" text-anchor="middle">START</text>
+
+  <path class="s-good" d="M43 132 C 100 160, 280 160, 325 136"/>
+  <path class="f-good" d="M325 130 l-8,7 l9,4 z"/>
+  <text class="cap t-good" x="184" y="176" text-anchor="middle">walk 1&#8594;2&#8594;3&#8594;4, length 4</text>
+
+  <text class="cap" x="0" y="212"><tspan class="capb">Why it stays O(n):</tspan> a number is only walked <tspan class="capb">from</tspan> if it starts a run. Every element is</text>
+  <text class="cap" x="0" y="232">visited at most twice overall &#8212; once by the outer loop, once by the single inner walk that</text>
+  <text class="cap" x="0" y="252">covers its run. The nested <tspan class="sv-mono">while</tspan> looks quadratic but the guard makes it linear.</text>
+</svg>
+<figcaption><b>The start-of-run guard.</b> This is the pattern to remember: <em>a nested loop is not automatically O(n²) if a guard clause makes the inner work happen only once per element across the whole run.</em> Interviewers love asking you to prove this bound.</figcaption>
+</figure>
+
+<h3>7. Hashing coordinates — Valid Sudoku</h3>
+
+<p>Valid Sudoku is deceptively simple once you see it as three simultaneous membership problems, all solvable in a single pass over the 81 cells. The only piece of real thinking is the box index.</p>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Sudoku board divided into nine boxes with the box index formula">
+  <!-- board -->
+  <g>
+    <rect class="cell" x="0" y="14" width="270" height="270" rx="4" fill="none"/>
+    <!-- 3x3 boxes -->
+    <rect class="sv-info" x="0" y="14" width="90" height="90"/>
+    <rect class="sv-good" x="90" y="14" width="90" height="90"/>
+    <rect class="sv-warn" x="180" y="14" width="90" height="90"/>
+    <rect class="sv-good" x="0" y="104" width="90" height="90"/>
+    <rect class="sv-warn" x="90" y="104" width="90" height="90"/>
+    <rect class="sv-info" x="180" y="104" width="90" height="90"/>
+    <rect class="sv-warn" x="0" y="194" width="90" height="90"/>
+    <rect class="sv-info" x="90" y="194" width="90" height="90"/>
+    <rect class="sv-good" x="180" y="194" width="90" height="90"/>
+    <text class="val" x="45" y="65" text-anchor="middle">(0,0)</text>
+    <text class="val" x="135" y="65" text-anchor="middle">(0,1)</text>
+    <text class="val" x="225" y="65" text-anchor="middle">(0,2)</text>
+    <text class="val" x="45" y="155" text-anchor="middle">(1,0)</text>
+    <text class="val" x="135" y="155" text-anchor="middle">(1,1)</text>
+    <text class="val" x="225" y="155" text-anchor="middle">(1,2)</text>
+    <text class="val" x="45" y="245" text-anchor="middle">(2,0)</text>
+    <text class="val" x="135" y="245" text-anchor="middle">(2,1)</text>
+    <text class="val" x="225" y="245" text-anchor="middle">(2,2)</text>
+  </g>
+  <text class="tiny" x="135" y="298" text-anchor="middle">box coordinates = (r // 3, c // 3)</text>
+
+  <!-- three sets -->
+  <text class="capb" x="320" y="30">Three defaultdict(set)s, one pass</text>
+  <rect class="sv-acc" x="320" y="44" width="410" height="40" rx="7"/>
+  <text class="val" x="334" y="69">rows[r]  — digits already seen in row r</text>
+  <rect class="sv-acc" x="320" y="92" width="410" height="40" rx="7"/>
+  <text class="val" x="334" y="117">cols[c]  — digits already seen in column c</text>
+  <rect class="sv-acc" x="320" y="140" width="410" height="40" rx="7"/>
+  <text class="val" x="334" y="165">boxes[(r//3, c//3)]  — digits in this 3×3 box</text>
+
+  <text class="cap" x="320" y="208">For each filled cell, if its digit is already in <tspan class="sv-mono">any</tspan> of the three,</text>
+  <text class="cap" x="320" y="228">the board is invalid. Otherwise add it to all three and continue.</text>
+  <text class="cap" x="320" y="256">81 cells × 3 O(1) lookups = constant work. The whole problem is</text>
+  <text class="cap" x="320" y="276">just <tspan class="capb">choosing the right key</tspan> for the third set.</text>
+</svg>
+<figcaption><b>One pass, three keys.</b> The generalisable lesson: when several independent constraints apply to the same element, keep one hash structure per constraint and check them together, rather than making three separate passes.</figcaption>
+</figure>
+
+<h3>8. Length-prefix encoding</h3>
+
+<p>Encode and Decode Strings is a <em>design</em> question wearing a string costume. The naive answer &mdash; join with a delimiter like <code>"#"</code> &mdash; breaks the moment a payload contains that delimiter. The fix is to make the encoding self-describing: prefix each string with its length, so the decoder never has to guess where a string ends.</p>
+
+<figure>
+<svg viewBox="0 0 740 258" role="img" aria-label="Length prefixed encoding of a list of strings and how the decoder walks it">
+  <text class="capb" x="0" y="16">["neet", "co#de", ""]  &#8594;  encoded</text>
+
+  <rect class="sv-acc" x="0" y="30" width="700" height="42" rx="7"/>
+  <text class="val" x="16" y="57">4#neet5#co#de0#</text>
+
+  <!-- segment brackets -->
+  <path class="s-info" d="M14 80 L14 90 L84 90 L84 80"/>
+  <text class="tiny t-info" x="49" y="106" text-anchor="middle">"neet"</text>
+  <path class="s-good" d="M88 80 L88 90 L186 90 L186 80"/>
+  <text class="tiny t-good" x="137" y="106" text-anchor="middle">"co#de"</text>
+  <path class="s-warn" d="M190 80 L190 90 L222 90 L222 80"/>
+  <text class="tiny t-warn" x="206" y="106" text-anchor="middle">""</text>
+
+  <line class="sv-line dash" x1="0" y1="126" x2="740" y2="126"/>
+
+  <text class="capb" x="0" y="152">The decoder never searches — it counts</text>
+  <text class="cap" x="0" y="178">1. read digits until <tspan class="sv-mono">'#'</tspan>  &#8594; that&#8217;s the length <tspan class="sv-mono">L</tspan></text>
+  <text class="cap" x="0" y="200">2. take exactly the next <tspan class="sv-mono">L</tspan> characters, whatever they contain</text>
+  <text class="cap" x="0" y="222">3. jump the pointer past them and repeat</text>
+  <text class="tiny" x="0" y="248">Because step 2 is a jump, not a scan, a <tspan class="sv-mono">#</tspan> inside a payload is harmless. Empty strings round-trip too.</text>
+</svg>
+<figcaption><b>Self-describing encoding.</b> This is exactly how length-prefixed framing works in real network protocols. If an interviewer asks &ldquo;what if strings can contain any character?&rdquo;, this is the answer &mdash; the alternative (escaping) is strictly more fiddly.</figcaption>
+</figure>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Set membership</b></td><td>Drop everything in a set (or compare <code>len(set) != len(list)</code>); the whole problem is &ldquo;is there a collision.&rdquo;</td><td>Contains Duplicate <span class="tag easy">easy</span></td></tr>
+<tr><td><b>2. Frequency counting</b></td><td>Build a Counter. Anagram is a Counter-equality check; top-k is bucket-sort-by-count.</td><td>Valid Anagram <span class="tag easy">easy</span>, Top K Frequent Elements <span class="tag med">med</span></td></tr>
+<tr><td><b>3. Complement / mapping lookup</b></td><td>Map value → index, look up the complement you still need.</td><td>Two Sum <span class="tag easy">easy</span></td></tr>
+<tr><td><b>4. Signature grouping</b></td><td>Bucket under a canonical key (sorted letters, or a 26-count tuple).</td><td>Group Anagrams <span class="tag med">med</span></td></tr>
+<tr><td><b>5. Encoding / design</b></td><td>Serialize a list of strings so it round-trips unambiguously — length-prefix delimiter.</td><td>Encode and Decode Strings <span class="tag med">med</span></td></tr>
+<tr><td><b>6. Index arithmetic / prefix-suffix</b></td><td>Lean on positional structure: prefix/suffix products; row/col/box hashing; the start-of-run guard.</td><td>Product of Array Except Self <span class="tag med">med</span>, Valid Sudoku <span class="tag med">med</span>, Longest Consecutive Sequence <span class="tag med">med</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Contains Duplicate</b><span class="why">Get the set reflex. Solve it three ways (sort, set, length comparison) and be able to state the trade-offs.</span></li>
+<li><b>Valid Anagram</b><span class="why">Get the Counter reflex. Then redo it without <code>Counter</code>, using a plain dict and a decrement pass.</span></li>
+<li><b>Two Sum</b><span class="why">The complement lookup — the single most important pattern here. Do the one-pass version, not the two-pass one.</span></li>
+<li><b>Group Anagrams</b><span class="why">Canonical-key bucketing. Try both keys: <code>tuple(sorted(s))</code> and a 26-length count tuple.</span></li>
+<li><b>Top K Frequent Elements</b><span class="why">Bucket sort by frequency. Note out loud that this beats both the heap and the sort.</span></li>
+<li><b>Encode and Decode Strings</b><span class="why">Length-prefix design. The interviewer is testing whether you spot the delimiter-collision bug unprompted.</span></li>
+<li><b>Product of Array Except Self</b><span class="why">Prefix/suffix, no division. Push for the O(1)-extra-space version where the output array carries the prefix pass.</span></li>
+<li><b>Valid Sudoku</b><span class="why">Hashing rows, columns and boxes at once. The <code>(r//3, c//3)</code> key is the whole insight.</span></li>
+<li class="boss"><b>Longest Consecutive Sequence</b><span class="why">Set + start-of-run trick — the cleverest one, saved for last. Be ready to prove why the nested loop is still O(n).</span></li>
+</ol>
+
+<p>By the time you reach Longest Consecutive Sequence, the &ldquo;trade memory for a lookup&rdquo; instinct will be automatic, and its O(n) trick &mdash; only expand a run when you&rsquo;re standing on its smallest element &mdash; will feel like a natural extension rather than a rabbit out of a hat.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Key structure</th></tr></thead>
+<tbody>
+<tr><td>Contains Duplicate</td><td>O(n)</td><td>O(n)</td><td><code>set</code></td></tr>
+<tr><td>Valid Anagram</td><td>O(n)</td><td>O(1)*</td><td><code>Counter</code> (*bounded alphabet)</td></tr>
+<tr><td>Two Sum</td><td>O(n)</td><td>O(n)</td><td><code>dict</code> value→index</td></tr>
+<tr><td>Group Anagrams</td><td>O(n·k)</td><td>O(n·k)</td><td><code>defaultdict(list)</code></td></tr>
+<tr><td>Top K Frequent</td><td>O(n)</td><td>O(n)</td><td><code>Counter</code> + bucket array</td></tr>
+<tr><td>Encode / Decode Strings</td><td>O(total chars)</td><td>O(total chars)</td><td>string pointer</td></tr>
+<tr><td>Product Except Self</td><td>O(n)</td><td>O(1) extra</td><td>prefix + running suffix</td></tr>
+<tr><td>Valid Sudoku</td><td>O(1) (81 cells)</td><td>O(1)</td><td>3 × <code>defaultdict(set)</code></td></tr>
+<tr><td>Longest Consecutive Seq.</td><td>O(n)</td><td>O(n)</td><td><code>set</code> + start guard</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps that cost people this section</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — the hidden O(n) lookup</span>
+  <p><code>if x in some_list</code> is a linear scan. In a loop, that&rsquo;s O(n²) disguised as O(n). Convert to a set before the loop.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — unhashable keys</span>
+  <p><code>d[[1,2]] = x</code> raises <code>TypeError: unhashable type: 'list'</code>. Use a tuple. Same reason a <code>set</code> of lists is impossible but a set of tuples is fine.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — mutating while iterating</span>
+  <p><code>for k in d: del d[k]</code> raises <code>RuntimeError</code>. Iterate over <code>list(d)</code> or <code>list(d.items())</code> if you plan to modify.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — counting the second string wrong</span>
+  <p>In Valid Anagram, if you decrement counts from <code>t</code> without checking for negatives or leftover keys, <code>"aab"</code> vs <code>"abb"</code> can slip through. Check the length first, then verify every count is zero.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 5 — division in Product of Array Except Self</span>
+  <p>&ldquo;Multiply everything, then divide by nums[i]&rdquo; is banned by the problem <em>and</em> broken by zeros. If you catch yourself reaching for it, that&rsquo;s the signal to do prefix/suffix.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Do this before every loop</span>
+  <p>Write a one-line comment naming the structure and what its keys and values <em>mean</em> &mdash; e.g. <code># count: letter -&gt; how many times it appears in s</code>. Committing to what the map holds <em>before</em> you build it is what turns a vague &ldquo;I&rsquo;ll use a dict somewhere&rdquo; into an actual solution. It also gives the interviewer something to nod at while you type.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

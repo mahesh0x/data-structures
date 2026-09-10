@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graphs — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="graphs" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Graphs</h1>
+<p class="deck">Where NeetCode stops being about one fixed data structure and starts being about a <em>way of moving</em> through data. Island problems and course problems are the same flood fill on a different input shape.</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">13</div></div>
+  <div class="fact"><div class="k">Core moves</div><div class="v" style="font-size:14px">DFS · BFS</div></div>
+  <div class="fact"><div class="k">Extra tools</div><div class="v" style="font-size:14px">topo sort · union-find</div></div>
+  <div class="fact"><div class="k">Typical time</div><div class="v">O(V + E)</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>Graphs don&rsquo;t have one shape, they have three</h2>
+
+<p class="lead-in">Unlike trees, a graph arrives in one of a few representations, and half the battle is recognising which one you got.</p>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="The three ways a graph arrives: implicit grid, adjacency list, and node objects">
+  <!-- grid -->
+  <rect class="panel" x="0" y="10" width="236" height="300" rx="10"/>
+  <text class="capb" x="16" y="36">1 · Grid (implicit)</text>
+  <text class="tiny" x="16" y="54">each cell is a node</text>
+  <g>
+    <rect class="sv-good" x="16"  y="70" width="60" height="46" rx="4"/><text class="val" x="46"  y="99" text-anchor="middle">1</text>
+    <rect class="sv-good" x="80"  y="70" width="60" height="46" rx="4"/><text class="val" x="110" y="99" text-anchor="middle">1</text>
+    <rect class="cell"    x="144" y="70" width="60" height="46" rx="4"/><text class="val" x="174" y="99" text-anchor="middle">0</text>
+    <rect class="sv-good" x="16"  y="120" width="60" height="46" rx="4"/><text class="val" x="46"  y="149" text-anchor="middle">1</text>
+    <rect class="cell"    x="80"  y="120" width="60" height="46" rx="4"/><text class="val" x="110" y="149" text-anchor="middle">0</text>
+    <rect class="cell"    x="144" y="120" width="60" height="46" rx="4"/><text class="val" x="174" y="149" text-anchor="middle">0</text>
+    <rect class="cell"    x="16"  y="170" width="60" height="46" rx="4"/><text class="val" x="46"  y="199" text-anchor="middle">0</text>
+    <rect class="cell"    x="80"  y="170" width="60" height="46" rx="4"/><text class="val" x="110" y="199" text-anchor="middle">0</text>
+    <rect class="sv-acc"  x="144" y="170" width="60" height="46" rx="4"/><text class="val" x="174" y="199" text-anchor="middle">1</text>
+  </g>
+  <path class="s-good" d="M78 93 L78 93"/>
+  <text class="cap" x="16" y="244">neighbours = up / down /</text>
+  <text class="cap" x="16" y="262">left / right</text>
+  <text class="tiny" x="16" y="290">Most common here, and the</text>
+  <text class="tiny" x="16" y="304">one people don&#8217;t recognise as a graph.</text>
+
+  <!-- adjacency list -->
+  <rect class="panel" x="252" y="10" width="236" height="300" rx="10"/>
+  <text class="capb" x="268" y="36">2 · Adjacency list</text>
+  <text class="tiny" x="268" y="54">node → list of neighbours</text>
+  <g class="sv-line">
+    <line x1="320" y1="98" x2="400" y2="98"/><line x1="320" y1="98" x2="360" y2="166"/><line x1="400" y1="98" x2="360" y2="166"/>
+  </g>
+  <circle class="sv-info" cx="320" cy="98" r="18"/><text class="val" x="320" y="103" text-anchor="middle">0</text>
+  <circle class="sv-info" cx="400" cy="98" r="18"/><text class="val" x="400" y="103" text-anchor="middle">1</text>
+  <circle class="sv-info" cx="360" cy="166" r="18"/><text class="val" x="360" y="171" text-anchor="middle">2</text>
+  <text class="cap sv-mono" x="268" y="212">adj[0] = [1, 2]</text>
+  <text class="cap sv-mono" x="268" y="232">adj[1] = [0, 2]</text>
+  <text class="cap sv-mono" x="268" y="252">adj[2] = [0, 1]</text>
+  <text class="tiny" x="268" y="282">Built from an edge list. Undirected?</text>
+  <text class="tiny" x="268" y="296">Add BOTH directions.</text>
+
+  <!-- node objects -->
+  <rect class="panel" x="504" y="10" width="236" height="300" rx="10"/>
+  <text class="capb" x="520" y="36">3 · Node objects</text>
+  <text class="tiny" x="520" y="54">each node holds its neighbours</text>
+  <g>
+    <rect class="sv-acc" x="520" y="76" width="180" height="46" rx="6"/>
+    <text class="val" x="534" y="105">val=1, neighbors=[…]</text>
+    <rect class="sv-acc" x="520" y="136" width="180" height="46" rx="6"/>
+    <text class="val" x="534" y="165">val=2, neighbors=[…]</text>
+  </g>
+  <path class="s-acc" d="M700 99 C 726 110, 726 148, 704 158"/>
+  <path class="f-acc" d="M700 162 l9,-4 l-1,-10 z"/>
+  <text class="cap" x="520" y="216">You&#8217;re given one node and must</text>
+  <text class="cap" x="520" y="236">reach the rest by traversal.</text>
+  <text class="tiny" x="520" y="266">Clone Graph. There is no master list —</text>
+  <text class="tiny" x="520" y="280">discovering nodes IS the traversal.</text>
+</svg>
+<figcaption><b>First question, always:</b> <em>what&rsquo;s a node, what&rsquo;s an edge, and which of these three shapes am I in?</em> Grids are the most common in this section and the ones people under-recognise as graphs at all.</figcaption>
+</figure>
+
+<pre><code># 1. Grid (implicit graph): each cell is a node, neighbors are up/down/left/right
+grid = [["1","1","0"], ["1","0","0"], ["0","0","1"]]
+
+# 2. Adjacency list: node -> list of neighbors (build this from an edge list)
+from collections import defaultdict
+adj = defaultdict(list)
+for u, v in edges:      # undirected: add both directions
+    adj[u].append(v)
+    adj[v].append(u)
+
+# 3. Node object (like Clone Graph)
+class Node:
+    def __init__(self, val=0, neighbors=None):
+        self.val = val
+        self.neighbors = neighbors if neighbors is not None else []
+</code></pre>
+
+<h2>The one habit: have I been here before?</h2>
+
+<p>The one thing that separates a graph traversal from a tree traversal is <strong>cycles</strong>. Trees can&rsquo;t revisit a node; graphs can, and if you don&rsquo;t guard against it you&rsquo;ll loop forever.</p>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>&ldquo;How am I marking a node as visited, <em>and where in the code do I mark it?</em>&rdquo;</p>
+</div>
+
+<p>You have two tools:</p>
+
+<ul>
+<li>A <b><code>visited</code> set</b> (or <code>seen</code> dict) &mdash; the general answer, works everywhere.</li>
+<li><b>Mutating the input in place</b> &mdash; on grids you can often overwrite a visited <code>"1"</code> with <code>"0"</code> (or <code>"#"</code>) instead of carrying a set. Cheaper, but destroys the input, so only do it when the problem lets you.</li>
+</ul>
+
+<figure>
+<svg viewBox="0 0 740 280" role="img" aria-label="Marking a node visited on enqueue versus on dequeue">
+  <rect class="sv-bad" x="0" y="10" width="356" height="264" rx="10"/>
+  <text class="capb t-bad" x="18" y="36">✗ mark when you POP it</text>
+  <g class="sv-line">
+    <line x1="90" y1="92" x2="178" y2="150"/><line x1="266" y1="92" x2="178" y2="150"/><line x1="90" y1="92" x2="266" y2="92"/>
+  </g>
+  <circle class="sv-acc" cx="90"  cy="80" r="20"/><text class="val" x="90"  y="85" text-anchor="middle">A</text>
+  <circle class="cell" cx="266" cy="80" r="20"/><text class="val" x="266" y="85" text-anchor="middle">B</text>
+  <circle class="sv-bad" cx="178" cy="164" r="20"/><text class="val" x="178" y="169" text-anchor="middle">C</text>
+  <text class="cap" x="18" y="212">A enqueues C. B enqueues C too — it isn&#8217;t</text>
+  <text class="cap" x="18" y="232">marked yet. Now C sits in the queue twice.</text>
+  <text class="tiny t-bad" x="18" y="258">On a dense graph this blows up exponentially.</text>
+
+  <rect class="sv-good" x="384" y="10" width="356" height="264" rx="10"/>
+  <text class="capb t-good" x="402" y="36">✓ mark when you ENQUEUE it</text>
+  <g class="sv-line">
+    <line x1="474" y1="92" x2="562" y2="150"/><line x1="650" y1="92" x2="562" y2="150"/><line x1="474" y1="92" x2="650" y2="92"/>
+  </g>
+  <circle class="sv-acc" cx="474" cy="80" r="20"/><text class="val" x="474" y="85" text-anchor="middle">A</text>
+  <circle class="cell" cx="650" cy="80" r="20"/><text class="val" x="650" y="85" text-anchor="middle">B</text>
+  <circle class="sv-good" cx="562" cy="164" r="20"/><text class="val" x="562" y="169" text-anchor="middle">C</text>
+  <path class="s-bad dash" d="M636 96 L580 148"/>
+  <text class="tiny t-bad" x="640" y="140">blocked</text>
+  <text class="cap" x="402" y="212">A enqueues C and marks it immediately.</text>
+  <text class="cap" x="402" y="232">B finds it already visited and skips.</text>
+  <text class="tiny t-good" x="402" y="258">Each node enters the queue exactly once. O(V + E).</text>
+</svg>
+<figcaption><b>Mark on entry, every time.</b> The classic bug is marking a node visited <em>after</em> you process it instead of <em>when you enqueue/enter it</em> &mdash; that lets the same node get added to your queue multiple times, and the distance you eventually record may not be the shortest.</figcaption>
+</figure>
+
+<h2>The 30-second mental check</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Ask</th><th>Tool</th><th>Trigger words</th></tr></thead>
+<tbody>
+<tr><td><b>Shortest path / fewest steps, or spreading in waves?</b></td><td><b>BFS</b> with a queue, level by level</td><td>&ldquo;minimum,&rdquo; &ldquo;shortest,&rdquo; &ldquo;fewest,&rdquo; &ldquo;rotting outward&rdquo;</td></tr>
+<tr><td><b>Explore a whole connected region / count components / detect a cycle?</b></td><td><b>DFS</b> (recursive flood fill) — BFS works too</td><td>&ldquo;island,&rdquo; &ldquo;region,&rdquo; &ldquo;how many groups&rdquo;</td></tr>
+<tr><td><b>Is there a &ldquo;do X before Y&rdquo; ordering?</b></td><td><b>Topological sort</b> — DFS with cycle detection, or Kahn&rsquo;s BFS on in-degrees</td><td>&ldquo;prerequisite,&rdquo; &ldquo;must come before,&rdquo; &ldquo;valid order&rdquo;</td></tr>
+<tr><td><b>Merging things into groups / &ldquo;are these two connected&rdquo;?</b></td><td><b>Union-Find</b> (DSU)</td><td>&ldquo;connected components,&rdquo; &ldquo;redundant edge,&rdquo; &ldquo;valid tree&rdquo;</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traversal patterns &mdash; know these cold</h2>
+
+<h3>DFS flood fill on a grid</h3>
+
+<figure>
+<svg viewBox="0 0 740 326" role="img" aria-label="DFS flood fill sinking an island one cell at a time">
+  <text class="capb" x="0" y="16">Number of Islands — scan the grid; on every unvisited land cell, sink the whole region</text>
+
+  <!-- before -->
+  <text class="cap" x="0" y="46">before</text>
+  <g transform="translate(0,56)">
+    <rect class="sv-good" x="0"  y="0"  width="46" height="42" rx="3"/><rect class="sv-good" x="48" y="0" width="46" height="42" rx="3"/><rect class="cell" x="96" y="0" width="46" height="42" rx="3"/><rect class="cell" x="144" y="0" width="46" height="42" rx="3"/>
+    <rect class="sv-good" x="0"  y="44" width="46" height="42" rx="3"/><rect class="cell" x="48" y="44" width="46" height="42" rx="3"/><rect class="cell" x="96" y="44" width="46" height="42" rx="3"/><rect class="cell" x="144" y="44" width="46" height="42" rx="3"/>
+    <rect class="cell" x="0"  y="88" width="46" height="42" rx="3"/><rect class="cell" x="48" y="88" width="46" height="42" rx="3"/><rect class="sv-acc" x="96" y="88" width="46" height="42" rx="3"/><rect class="cell" x="144" y="88" width="46" height="42" rx="3"/>
+  </g>
+  <text class="tiny t-good" x="46" y="212">island 1</text>
+  <text class="tiny t-acc" x="119" y="212">island 2</text>
+
+  <path class="s-acc" d="M230 118 L280 118"/><path class="f-acc" d="M288 118 l-9,-5 l0,10 z"/>
+
+  <text class="capb" x="310" y="46">The recursion, in four lines</text>
+  <text class="cap sv-mono" x="310" y="76">if out of bounds or grid[r][c] != "1": return</text>
+  <text class="cap sv-mono t-acc" x="310" y="100">grid[r][c] = "0"        # mark by mutating</text>
+  <text class="cap sv-mono" x="310" y="124">dfs(r+1, c); dfs(r-1, c)</text>
+  <text class="cap sv-mono" x="310" y="148">dfs(r, c+1); dfs(r, c-1)</text>
+  <text class="cap" x="310" y="180">The guard doubles as the bounds check AND the</text>
+  <text class="cap" x="310" y="200">visited check — one condition, no duplication.</text>
+
+  <rect class="panel" x="0" y="240" width="740" height="82" rx="10"/>
+  <text class="cap" x="16" y="264"><tspan class="capb">Counting islands:</tspan> the outer scan only increments when it lands on an unvisited land cell — because the DFS immediately</text>
+  <text class="cap" x="16" y="286">consumes every cell of that island, so no island is ever counted twice.</text>
+  <text class="cap" x="16" y="308"><tspan class="capb">Max Area of Island</tspan> is the same code returning <tspan class="sv-mono">1 + the four recursive sums</tspan>.</text>
+</svg>
+<figcaption><b>Flood fill.</b> Mutating the grid is both the visited-marking and the &ldquo;this island is consumed&rdquo; bookkeeping. On very large grids beware recursion depth &mdash; an iterative stack version is the safe alternative to mention.</figcaption>
+</figure>
+
+<pre><code>def dfs(r, c):
+    if (r &lt; 0 or r &gt;= rows or c &lt; 0 or c &gt;= cols
+            or grid[r][c] != "1"):
+        return
+    grid[r][c] = "0"                 # mark visited by mutating
+    dfs(r + 1, c); dfs(r - 1, c)
+    dfs(r, c + 1); dfs(r, c - 1)
+</code></pre>
+
+<h3>BFS on a grid &mdash; and the multi-source trick</h3>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="Multi-source BFS spreading outward in waves from several starting cells at once">
+  <text class="capb" x="0" y="16">Rotting Oranges — seed the queue with EVERY rotten orange before the loop starts</text>
+
+  <g transform="translate(0,32)">
+    <rect class="sv-bad" x="0"   y="0"  width="56" height="50" rx="3"/><text class="tiny" x="28"  y="30" text-anchor="middle">0</text>
+    <rect class="sv-warn" x="58" y="0"  width="56" height="50" rx="3"/><text class="tiny" x="86"  y="30" text-anchor="middle">1</text>
+    <rect class="sv-info" x="116" y="0" width="56" height="50" rx="3"/><text class="tiny" x="144" y="30" text-anchor="middle">2</text>
+    <rect class="sv-good" x="174" y="0" width="56" height="50" rx="3"/><text class="tiny" x="202" y="30" text-anchor="middle">3</text>
+    <rect class="cell" x="232" y="0" width="56" height="50" rx="3"/><text class="tiny" x="260" y="30" text-anchor="middle">·</text>
+
+    <rect class="sv-warn" x="0"   y="52" width="56" height="50" rx="3"/><text class="tiny" x="28"  y="82" text-anchor="middle">1</text>
+    <rect class="sv-info" x="58"  y="52" width="56" height="50" rx="3"/><text class="tiny" x="86"  y="82" text-anchor="middle">2</text>
+    <rect class="sv-good" x="116" y="52" width="56" height="50" rx="3"/><text class="tiny" x="144" y="82" text-anchor="middle">3</text>
+    <rect class="cell" x="174" y="52" width="56" height="50" rx="3"/><text class="tiny" x="202" y="82" text-anchor="middle">4</text>
+    <rect class="sv-bad" x="232" y="52" width="56" height="50" rx="3"/><text class="tiny" x="260" y="82" text-anchor="middle">0</text>
+
+    <rect class="sv-info" x="0"   y="104" width="56" height="50" rx="3"/><text class="tiny" x="28"  y="134" text-anchor="middle">2</text>
+    <rect class="sv-good" x="58"  y="104" width="56" height="50" rx="3"/><text class="tiny" x="86"  y="134" text-anchor="middle">3</text>
+    <rect class="cell" x="116" y="104" width="56" height="50" rx="3"/><text class="tiny" x="144" y="134" text-anchor="middle">4</text>
+    <rect class="sv-good" x="174" y="104" width="56" height="50" rx="3"/><text class="tiny" x="202" y="134" text-anchor="middle">3</text>
+    <rect class="sv-warn" x="232" y="104" width="56" height="50" rx="3"/><text class="tiny" x="260" y="134" text-anchor="middle">1</text>
+  </g>
+
+  <text class="cap t-bad" x="320" y="52">minute 0 — both rotten oranges, in the queue together</text>
+  <text class="cap t-warn" x="320" y="82">minute 1 — everything one step from ANY source</text>
+  <text class="cap t-info" x="320" y="112">minute 2</text>
+  <text class="cap t-good" x="320" y="142">minute 3 — the two wavefronts meet</text>
+
+  <rect class="panel" x="0" y="204" width="740" height="112" rx="10"/>
+  <text class="capb" x="16" y="228">Why one BFS from all sources, not one BFS per source</text>
+  <text class="cap" x="16" y="254">Running a separate BFS per source and taking the minimum is O(sources × V) — correct but wasteful.</text>
+  <text class="cap" x="16" y="276">Seeding all sources at level 0 gives every cell its distance to the <tspan class="capb">nearest</tspan> source in a single O(V + E) sweep,</text>
+  <text class="cap" x="16" y="298">because the wavefronts expand simultaneously and whichever reaches a cell first is by definition the closest.</text>
+</svg>
+<figcaption><b>Multi-source BFS.</b> Seeding the queue with every start cell before the loop is the whole idea behind Rotting Oranges and Walls and Gates. The number of outer-loop iterations <em>is</em> the elapsed time.</figcaption>
+</figure>
+
+<pre><code>from collections import deque
+q = deque(sources)                   # can seed with MANY starts at once
+while q:
+    for _ in range(len(q)):          # one "minute"/level at a time
+        r, c = q.popleft()
+        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nr, nc = r + dr, c + dc
+            if in_bounds(nr, nc) and (nr, nc) not in visited:
+                visited.add((nr, nc))     # mark on ENQUEUE
+                q.append((nr, nc))
+    time += 1
+</code></pre>
+
+<h3>The border-inward trick</h3>
+
+<p>Pacific Atlantic Water Flow and Surrounded Regions both flip from hard to easy with one reversal of perspective.</p>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="Reversing the question: search from the borders inward instead of from each cell outward">
+  <rect class="sv-bad" x="0" y="10" width="356" height="130" rx="10"/>
+  <text class="capb t-bad" x="18" y="36">✗ &#8220;Can this inner cell escape?&#8221;</text>
+  <text class="cap" x="18" y="62">One search per cell, each potentially visiting</text>
+  <text class="cap" x="18" y="82">the whole grid: O((m·n)²).</text>
+  <text class="cap" x="18" y="110">And the &#8220;visited&#8221; set can&#8217;t be shared between</text>
+  <text class="cap" x="18" y="128">searches, so nothing is reusable.</text>
+
+  <rect class="sv-good" x="384" y="10" width="356" height="130" rx="10"/>
+  <text class="capb t-good" x="402" y="36">✓ &#8220;Which cells can the border reach?&#8221;</text>
+  <text class="cap" x="402" y="62">Start from the edges and walk <tspan class="capb">inward</tspan>, one</text>
+  <text class="cap" x="402" y="82">shared visited set. O(m·n) total.</text>
+  <text class="cap" x="402" y="110">Two runs (Pacific edges, Atlantic edges),</text>
+  <text class="cap" x="402" y="128">then intersect the two sets.</text>
+
+  <!-- grid with borders -->
+  <g transform="translate(170,164)">
+    <rect class="sv-info" x="0"   y="0"  width="50" height="34" rx="3"/>
+    <rect class="sv-info" x="52"  y="0"  width="50" height="34" rx="3"/>
+    <rect class="sv-info" x="104" y="0"  width="50" height="34" rx="3"/>
+    <rect class="sv-info" x="156" y="0"  width="50" height="34" rx="3"/>
+    <rect class="sv-info" x="0"   y="36" width="50" height="34" rx="3"/>
+    <rect class="cell"    x="52"  y="36" width="50" height="34" rx="3"/>
+    <rect class="cell"    x="104" y="36" width="50" height="34" rx="3"/>
+    <rect class="sv-warn" x="156" y="36" width="50" height="34" rx="3"/>
+    <rect class="sv-info" x="0"   y="72" width="50" height="34" rx="3"/>
+    <rect class="cell"    x="52"  y="72" width="50" height="34" rx="3"/>
+    <rect class="cell"    x="104" y="72" width="50" height="34" rx="3"/>
+    <rect class="sv-warn" x="156" y="72" width="50" height="34" rx="3"/>
+    <rect class="sv-warn" x="0"   y="108" width="50" height="34" rx="3"/>
+    <rect class="sv-warn" x="52"  y="108" width="50" height="34" rx="3"/>
+    <rect class="sv-warn" x="104" y="108" width="50" height="34" rx="3"/>
+    <rect class="sv-warn" x="156" y="108" width="50" height="34" rx="3"/>
+  </g>
+  <text class="tiny t-info" x="100" y="200" text-anchor="middle">Pacific border →</text>
+  <text class="tiny t-warn" x="640" y="280" text-anchor="middle">← Atlantic border</text>
+  <text class="cap" x="0" y="286">Surrounded Regions uses the same move once: DFS from the border marks every <tspan class="capb">safe</tspan> region; everything unmarked flips.</text>
+</svg>
+<figcaption><b>Reverse the question.</b> Whenever &ldquo;can X reach the boundary?&rdquo; would need one search per X, ask &ldquo;what can the boundary reach?&rdquo; instead &mdash; one search, shared state, and the answer is the same set.</figcaption>
+</figure>
+
+<h3>Topological sort (Kahn&rsquo;s BFS on in-degrees)</h3>
+
+<figure>
+<svg viewBox="0 0 740 330" role="img" aria-label="Kahn's algorithm peeling off nodes whose in-degree has dropped to zero">
+  <text class="capb" x="0" y="16">Course Schedule — edges point from prerequisite to dependent</text>
+
+  <g class="sv-line">
+    <line x1="80" y1="80" x2="200" y2="80"/><line x1="240" y1="94" x2="320" y2="150"/><line x1="200" y1="164" x2="280" y2="164"/>
+  </g>
+  <circle class="sv-good" cx="60"  cy="80" r="22"/><text class="val" x="60"  y="86" text-anchor="middle">0</text>
+  <circle class="cell" cx="220" cy="80" r="22"/><text class="val" x="220" y="86" text-anchor="middle">1</text>
+  <circle class="sv-good" cx="180" cy="164" r="22"/><text class="val" x="180" y="170" text-anchor="middle">2</text>
+  <circle class="cell" cx="340" cy="164" r="22"/><text class="val" x="340" y="170" text-anchor="middle">3</text>
+  <text class="tiny t-good" x="60"  y="120" text-anchor="middle">in-degree 0</text>
+  <text class="tiny" x="220" y="120" text-anchor="middle">in-degree 1</text>
+  <text class="tiny t-good" x="180" y="204" text-anchor="middle">in-degree 0</text>
+  <text class="tiny" x="340" y="204" text-anchor="middle">in-degree 2</text>
+
+  <rect class="panel" x="410" y="30" width="330" height="180" rx="10"/>
+  <text class="capb" x="426" y="54">The algorithm, in words</text>
+  <text class="cap" x="426" y="80">1. Queue every node with in-degree 0 —</text>
+  <text class="cap" x="426" y="98">   nothing blocks them.</text>
+  <text class="cap" x="426" y="124">2. Pop one, append it to the order, and</text>
+  <text class="cap" x="426" y="142">   decrement each successor&#8217;s in-degree.</text>
+  <text class="cap" x="426" y="168">3. Any successor that hits 0 is now</text>
+  <text class="cap" x="426" y="186">   unblocked — queue it.</text>
+
+  <rect class="sv-bad" x="0" y="236" width="740" height="88" rx="10"/>
+  <text class="capb t-bad" x="18" y="260">Cycle detection comes free</text>
+  <text class="cap" x="18" y="286">If the loop ends with <tspan class="sv-mono">len(order) &lt; numCourses</tspan>, some nodes never reached in-degree 0 — each was waiting on</text>
+  <text class="cap" x="18" y="308">another node in the same cycle. <tspan class="capb">That leftover count IS the cycle detector</tspan> — what Course Schedule I asks for.</text>
+</svg>
+<figcaption><b>Kahn&rsquo;s algorithm.</b> Course Schedule I asks &ldquo;can you finish?&rdquo; (= is there a cycle?) and Course Schedule II asks for the order itself &mdash; identical code, different return value. The DFS alternative uses three colours (unvisited / in-progress / done); a back-edge to an in-progress node is a cycle.</figcaption>
+</figure>
+
+<pre><code>from collections import defaultdict, deque
+indegree = {n: 0 for n in range(numCourses)}
+adj = defaultdict(list)
+for course, pre in prerequisites:
+    adj[pre].append(course)
+    indegree[course] += 1
+
+q = deque([n for n in indegree if indegree[n] == 0])
+order = []
+while q:
+    n = q.popleft()
+    order.append(n)
+    for nxt in adj[n]:
+        indegree[nxt] -= 1
+        if indegree[nxt] == 0:
+            q.append(nxt)
+# if len(order) &lt; numCourses there was a cycle
+</code></pre>
+
+<h3>Union-Find (Disjoint Set Union)</h3>
+
+<figure>
+<svg viewBox="0 0 740 320" role="img" aria-label="Union find with path compression flattening the parent chain">
+  <text class="capb" x="0" y="16">Union-Find answers &#8220;are these two already connected?&#8221; in near-O(1)</text>
+
+  <text class="cap t-bad" x="0" y="52">before find(4) — a long chain</text>
+  <g class="sv-line">
+    <line x1="60" y1="86" x2="60" y2="120"/><line x1="60" y1="148" x2="60" y2="182"/><line x1="60" y1="210" x2="60" y2="244"/>
+  </g>
+  <circle class="sv-acc" cx="60" cy="72"  r="20"/><text class="val" x="60" y="77"  text-anchor="middle">1</text>
+  <circle class="cell" cx="60" cy="134" r="20"/><text class="val" x="60" y="139" text-anchor="middle">2</text>
+  <circle class="cell" cx="60" cy="196" r="20"/><text class="val" x="60" y="201" text-anchor="middle">3</text>
+  <circle class="cell" cx="60" cy="258" r="20"/><text class="val" x="60" y="263" text-anchor="middle">4</text>
+  <text class="tiny t-acc" x="96" y="77">root</text>
+  <text class="tiny t-bad" x="96" y="263">3 hops to reach the root</text>
+
+  <path class="s-acc" d="M180 166 L240 166"/><path class="f-acc" d="M248 166 l-9,-5 l0,10 z"/>
+  <text class="tiny t-acc" x="210" y="156" text-anchor="middle">path compression</text>
+
+  <text class="cap t-good" x="290" y="52">after — everyone points straight at the root</text>
+  <g class="sv-line">
+    <line x1="420" y1="92" x2="350" y2="140"/><line x1="420" y1="92" x2="420" y2="140"/><line x1="420" y1="92" x2="490" y2="140"/>
+  </g>
+  <circle class="sv-acc" cx="420" cy="78" r="20"/><text class="val" x="420" y="83" text-anchor="middle">1</text>
+  <circle class="sv-good" cx="350" cy="154" r="20"/><text class="val" x="350" y="159" text-anchor="middle">2</text>
+  <circle class="sv-good" cx="420" cy="154" r="20"/><text class="val" x="420" y="159" text-anchor="middle">3</text>
+  <circle class="sv-good" cx="490" cy="154" r="20"/><text class="val" x="490" y="159" text-anchor="middle">4</text>
+  <text class="tiny t-good" x="420" y="192" text-anchor="middle">1 hop from now on</text>
+
+  <rect class="panel" x="0" y="222" width="740" height="98" rx="10"/>
+  <text class="capb" x="16" y="246">Two optimisations, both one line</text>
+  <text class="cap" x="16" y="272"><tspan class="capb">Path compression:</tspan> <tspan class="sv-mono">parent[x] = parent[parent[x]]</tspan> inside the find loop — halves the chain on every traversal.</text>
+  <text class="cap" x="16" y="294"><tspan class="capb">Union by rank/size:</tspan> attach the smaller tree under the larger, so chains never get tall in the first place.</text>
+  <text class="tiny" x="16" y="314">Together they give amortised O(α(n)) — inverse Ackermann, effectively constant for any n you will ever see.</text>
+</svg>
+<figcaption><b>DSU.</b> The crucial detail for these problems: <code>union</code> returns <code>False</code> when the two nodes already share a root &mdash; meaning adding that edge would <em>close a cycle</em>. That single boolean is what solves Redundant Connection and Graph Valid Tree.</figcaption>
+</figure>
+
+<pre><code>parent = list(range(n))
+def find(x):
+    while parent[x] != x:
+        parent[x] = parent[parent[x]]   # path compression
+        x = parent[x]
+    return x
+
+def union(a, b):
+    ra, rb = find(a), find(b)
+    if ra == rb:
+        return False                    # already connected -&gt; cycle
+    parent[ra] = rb
+    return True
+</code></pre>
+
+<div class="callout tip">
+  <span class="ct">Graph Valid Tree, in one sentence</span>
+  <p>A graph is a tree iff it is <b>connected</b>, has exactly <b>n − 1 edges</b>, and has <b>no cycle</b>. Any two of those imply the third, so in practice you check edge count first (an O(1) early exit) and then run union-find, failing on the first <code>union</code> that returns <code>False</code>.</p>
+</div>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Grid DFS flood fill</b></td><td>Scan the grid; every time you hit an unvisited land cell, DFS to sink the whole region. Count regions or track region size.</td><td>Number of Islands <span class="tag med">med</span>, Max Area of Island <span class="tag med">med</span></td></tr>
+<tr><td><b>2. Grid BFS / multi-source</b></td><td>Seed the queue with every source cell, then expand level by level counting rounds. Distance = the level at which a cell is reached.</td><td>Rotting Oranges <span class="tag med">med</span>, Islands and Treasure / Walls and Gates <span class="tag med">med</span></td></tr>
+<tr><td><b>3. Grid DFS from the border inward</b></td><td>Instead of asking &ldquo;can this inner cell escape,&rdquo; start from the <em>edges</em> and mark everything reachable back from them.</td><td>Pacific Atlantic Water Flow <span class="tag med">med</span>, Surrounded Regions <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Topological sort</b></td><td>Build adjacency + in-degrees, run Kahn&rsquo;s BFS (or DFS with a recursion-stack set). If you can&rsquo;t consume all nodes, there&rsquo;s a cycle.</td><td>Course Schedule <span class="tag med">med</span>, Course Schedule II <span class="tag med">med</span></td></tr>
+<tr><td><b>5. Union-Find</b></td><td>All three are the DSU template; the only difference is what you report — a count, a validity check, or the offending edge.</td><td>Number of Connected Components <span class="tag med">med</span>, Graph Valid Tree <span class="tag med">med</span>, Redundant Connection <span class="tag med">med</span></td></tr>
+<tr><td><b>6. Adjacency-list rebuild / traversal</b></td><td>Clone Graph copies nodes into an <code>old → new</code> map; Word Ladder is BFS over an implicit graph where words one letter apart are neighbours.</td><td>Clone Graph <span class="tag med">med</span>, Word Ladder <span class="tag hard">hard</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Word Ladder &mdash; BFS on an implicit graph</h2>
+
+<p>The graph is never given to you; you build neighbours on demand. And the way you generate them decides whether the solution passes.</p>
+
+<figure>
+<svg viewBox="0 0 740 260" role="img" aria-label="Word ladder neighbour generation by wildcard patterns rather than pairwise comparison">
+  <rect class="sv-bad" x="0" y="10" width="356" height="106" rx="10"/>
+  <text class="capb t-bad" x="18" y="36">✗ compare every pair of words</text>
+  <text class="cap" x="18" y="62">N words × N words × L characters</text>
+  <text class="cap" x="18" y="84">= O(N² · L). With N = 5,000 that&#8217;s</text>
+  <text class="cap" x="18" y="106">125 million character comparisons.</text>
+
+  <rect class="sv-good" x="384" y="10" width="356" height="106" rx="10"/>
+  <text class="capb t-good" x="402" y="36">✓ wildcard patterns</text>
+  <text class="cap" x="402" y="62">"hot" → "*ot", "h*t", "ho*"</text>
+  <text class="cap" x="402" y="84">Bucket every word under its L patterns;</text>
+  <text class="cap" x="402" y="106">neighbours = same bucket. O(N · L).</text>
+
+  <text class="capb" x="0" y="152">hit → hot → dot → dog → cog</text>
+  <g>
+    <rect class="sv-acc" x="0"   y="166" width="120" height="38" rx="5"/><text class="val" x="60"  y="191" text-anchor="middle">hit</text>
+    <rect class="cell" x="150" y="166" width="120" height="38" rx="5"/><text class="val" x="210" y="191" text-anchor="middle">hot</text>
+    <rect class="cell" x="300" y="166" width="120" height="38" rx="5"/><text class="val" x="360" y="191" text-anchor="middle">dot</text>
+    <rect class="cell" x="450" y="166" width="120" height="38" rx="5"/><text class="val" x="510" y="191" text-anchor="middle">dog</text>
+    <rect class="sv-good" x="600" y="166" width="120" height="38" rx="5"/><text class="val" x="660" y="191" text-anchor="middle">cog</text>
+    <path class="s-acc" d="M124 185 L142 185"/><path class="s-acc" d="M274 185 L292 185"/>
+    <path class="s-acc" d="M424 185 L442 185"/><path class="s-acc" d="M574 185 L592 185"/>
+  </g>
+  <text class="tiny" x="0" y="230">Each step changes exactly one letter, so &#8220;fewest transformations&#8221; = shortest path = <tspan class="capb">BFS</tspan>, not DFS.</text>
+  <text class="tiny" x="0" y="250">Mark words visited on enqueue and remove them from the word set so no word is ever expanded twice.</text>
+</svg>
+<figcaption><b>Implicit graphs.</b> When the nodes are strings, numbers, or board states rather than objects in a list, the interesting design decision is <em>how to enumerate neighbours cheaply</em>. That, not the BFS, is what the problem is testing.</figcaption>
+</figure>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Number of Islands</b><span class="why">Learn the grid DFS flood fill. The guard clause handles bounds and visited together.</span></li>
+<li><b>Max Area of Island</b><span class="why">Same flood fill, now returning a size instead of nothing.</span></li>
+<li><b>Clone Graph</b><span class="why">DFS/BFS with an old→new hashmap. The map doubles as the visited set.</span></li>
+<li><b>Islands and Treasure / Walls and Gates</b><span class="why">First multi-source BFS. Seed from every gate.</span></li>
+<li><b>Rotting Oranges</b><span class="why">Multi-source BFS, counting rounds. Remember to check for unreachable fresh oranges at the end.</span></li>
+<li><b>Pacific Atlantic Water Flow</b><span class="why">DFS inward from the borders; intersect the two reachable sets.</span></li>
+<li><b>Surrounded Regions</b><span class="why">Same border trick, marking survivors then flipping the rest.</span></li>
+<li><b>Course Schedule</b><span class="why">Topological sort as cycle detection. The leftover count is the answer.</span></li>
+<li><b>Course Schedule II</b><span class="why">Same code, now return the order.</span></li>
+<li><b>Graph Valid Tree</b><span class="why">Union-find, or connectivity + edge count. Check <code>edges == n-1</code> first.</span></li>
+<li><b>Number of Connected Components</b><span class="why">Union-find; start at n components and decrement on each successful union.</span></li>
+<li><b>Redundant Connection</b><span class="why">Union-find; the first edge whose <code>union</code> returns False is the answer.</span></li>
+<li class="boss"><b>Word Ladder</b><span class="why">BFS on an implicit word graph. Use wildcard buckets, not pairwise comparison.</span></li>
+</ol>
+
+<p>By #8 the DFS/BFS mechanics are automatic and you&rsquo;re really just learning two new tools &mdash; topological sort and union-find &mdash; that the rest of the section reuses.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Tool</th></tr></thead>
+<tbody>
+<tr><td>Number of Islands / Max Area</td><td>O(m·n)</td><td>O(m·n) worst-case stack</td><td>DFS flood fill</td></tr>
+<tr><td>Clone Graph</td><td>O(V + E)</td><td>O(V)</td><td>DFS + old→new map</td></tr>
+<tr><td>Walls and Gates / Rotting Oranges</td><td>O(m·n)</td><td>O(m·n)</td><td>multi-source BFS</td></tr>
+<tr><td>Pacific Atlantic</td><td>O(m·n)</td><td>O(m·n)</td><td>two border DFS runs</td></tr>
+<tr><td>Surrounded Regions</td><td>O(m·n)</td><td>O(m·n)</td><td>border DFS + flip</td></tr>
+<tr><td>Course Schedule I / II</td><td>O(V + E)</td><td>O(V + E)</td><td>Kahn&rsquo;s topological sort</td></tr>
+<tr><td>Connected Components / Valid Tree / Redundant Connection</td><td>O(E · α(n))</td><td>O(V)</td><td>union-find</td></tr>
+<tr><td>Word Ladder</td><td>O(N · L²)</td><td>O(N · L)</td><td>BFS + wildcard buckets</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — marking visited too late</span>
+  <p>Mark on enqueue (BFS) or on entry (DFS), never after processing. Otherwise nodes enter the frontier multiple times.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — forgetting both directions in an undirected graph</span>
+  <p><code>adj[u].append(v)</code> alone makes the graph directed. Half of &ldquo;my traversal misses nodes&rdquo; bugs are this line.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — using DFS for a shortest path</span>
+  <p>DFS finds <em>a</em> path, not the shortest. Any problem containing &ldquo;minimum&rdquo; or &ldquo;fewest&rdquo; on an unweighted graph wants BFS. (Weighted? That&rsquo;s <a href="../AdvancedGraphs/advanced_graphs.html">Dijkstra</a>.)</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — recursion depth on large grids</span>
+  <p>A 1000×1000 all-land grid means 10⁶ nested DFS calls. Python raises <code>RecursionError</code>. Say so, and offer the iterative stack version.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 5 — reversed edges in topological sort</span>
+  <p><code>prerequisites[i] = [course, prereq]</code> means the edge goes <em>prereq → course</em>. Build it the other way and you get a valid ordering of the wrong graph.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">Three things, before any code</span>
+  <p>Write a one-line comment stating your node, your edge, and your visited strategy &mdash; e.g. <code># node = grid cell, edge = 4-way neighbor, visited = overwrite '1' with '0'</code>. Getting those three straight up front is 80% of not writing an infinite loop.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

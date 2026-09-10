@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linked Lists — NeetCode 150 Notes</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body data-page="linked" data-root="..">
+<div class="layout">
+<main class="content">
+<article class="article">
+
+<div class="topbar"></div>
+
+<h1>Linked Lists</h1>
+<p class="deck">Four maneuvers solve almost everything. The whole game is manipulating <code>next</code> pointers <em>without losing track of the list</em> &mdash; and nearly every bug is a pointer you overwrote before you were done with it.</p>
+
+<div class="facts">
+  <div class="fact"><div class="k">Problems</div><div class="v">11</div></div>
+  <div class="fact"><div class="k">Maneuvers</div><div class="v">4</div></div>
+  <div class="fact"><div class="k">Typical time</div><div class="v">O(n)</div></div>
+  <div class="fact"><div class="k">Typical space</div><div class="v">O(1)</div></div>
+</div>
+
+<div class="toc"></div>
+
+<h2>The core structure</h2>
+
+<p class="lead-in">A singly linked list node is just a value and a pointer to the next node:</p>
+
+<pre><code>class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+</code></pre>
+
+<figure>
+<svg viewBox="0 0 740 200" role="img" aria-label="A singly linked list drawn as boxes with next pointers">
+  <text class="capb" x="0" y="16">head → 1 → 2 → 3 → 4 → None</text>
+
+  <g>
+    <rect class="sv-acc" x="60"  y="60" width="100" height="52" rx="6"/>
+    <line class="sv-line" x1="128" y1="60" x2="128" y2="112"/>
+    <text class="val" x="94" y="92" text-anchor="middle">1</text>
+    <circle cx="144" cy="86" r="4" class="f-acc"/>
+
+    <rect class="cell" x="210" y="60" width="100" height="52" rx="6"/>
+    <line class="sv-line" x1="278" y1="60" x2="278" y2="112"/>
+    <text class="val" x="244" y="92" text-anchor="middle">2</text>
+    <circle cx="294" cy="86" r="4" class="f-ink"/>
+
+    <rect class="cell" x="360" y="60" width="100" height="52" rx="6"/>
+    <line class="sv-line" x1="428" y1="60" x2="428" y2="112"/>
+    <text class="val" x="394" y="92" text-anchor="middle">3</text>
+    <circle cx="444" cy="86" r="4" class="f-ink"/>
+
+    <rect class="cell" x="510" y="60" width="100" height="52" rx="6"/>
+    <line class="sv-line" x1="578" y1="60" x2="578" y2="112"/>
+    <text class="val" x="544" y="92" text-anchor="middle">4</text>
+    <circle cx="594" cy="86" r="4" class="f-ink"/>
+  </g>
+
+  <path class="s-acc" d="M148 86 L200 86"/><path class="f-acc" d="M208 86 l-9,-5 l0,10 z"/>
+  <path class="s-info" d="M298 86 L350 86"/><path class="f-info" d="M358 86 l-9,-5 l0,10 z"/>
+  <path class="s-info" d="M448 86 L500 86"/><path class="f-info" d="M508 86 l-9,-5 l0,10 z"/>
+  <path class="s-info" d="M598 86 L650 86"/>
+  <text class="val" x="672" y="91">None</text>
+
+  <text class="tiny" x="94"  y="132" text-anchor="middle">val</text>
+  <text class="tiny" x="144" y="132" text-anchor="middle">next</text>
+
+  <path class="s-acc" d="M110 44 L110 54"/>
+  <text class="cap t-acc" x="110" y="38" text-anchor="middle">head</text>
+
+  <text class="cap" x="0" y="174">There is <tspan class="capb">no index and no length</tspan>. You cannot jump to the middle, and you cannot walk backwards.</text>
+  <text class="cap" x="0" y="194">Every operation is: follow <tspan class="sv-mono">.next</tspan>, save what you need, relink. That constraint is what generates every technique below.</text>
+</svg>
+<figcaption><b>What a linked list gives you and what it takes away.</b> O(1) insertion and deletion <em>if you already hold the right node</em>, but O(n) to find anything and no way back. Every maneuver below is a workaround for one of those two limitations.</figcaption>
+</figure>
+
+<h2>The one habit: draw the pointers, save before you overwrite</h2>
+
+<div class="callout key">
+  <span class="ct">The habit</span>
+  <p>Before writing any linked list code, draw three or four nodes as boxes with arrows and physically trace what each pointer points to <em>after</em> every line. The number one bug in this section is <code>a.next = b</code> clobbering the only reference you had to the old <code>a.next</code>.</p>
+</div>
+
+<pre><code>nxt = curr.next   # save what you're about to lose
+curr.next = prev  # now it's safe to overwrite
+prev = curr       # walk forward
+curr = nxt
+</code></pre>
+
+<p>That four-line dance <em>is</em> list reversal, and it&rsquo;s the most reused block in the whole section. If you can write it without thinking, half the problems fall.</p>
+
+<h2>The 30-second mental check</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Ask</th><th>Reach for</th></tr></thead>
+<tbody>
+<tr><td><b>Can the head itself change, move, or get removed?</b></td><td>A <b>dummy head</b> in front, so you never special-case the first node. Merges and removals almost always want this.</td></tr>
+<tr><td><b>Do I need the middle, a position relative to the end, or to detect a cycle?</b></td><td><b>Two pointers</b> — fast/slow for middle and cycles, or a fixed-gap leader/follower for &ldquo;nth from the end.&rdquo;</td></tr>
+<tr><td><b>Am I about to overwrite a <code>next</code> I still need?</b></td><td><b>Save it first</b> (<code>nxt = curr.next</code>) before relinking. This is the reversal dance and the source of nearly every bug.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Maneuver 1 &mdash; reverse in place</h2>
+
+<figure>
+<svg viewBox="0 0 740 430" role="img" aria-label="Frame by frame trace of in-place linked list reversal">
+  <text class="capb" x="0" y="16">Reversing 1 → 2 → 3, one iteration at a time</text>
+
+  <!-- frame 0 -->
+  <text class="cap" x="0" y="52">start</text>
+  <g transform="translate(90,32)">
+    <rect class="sv-acc" x="0"   y="0" width="80" height="40" rx="5"/><text class="val" x="40"  y="26" text-anchor="middle">1</text>
+    <rect class="cell"   x="130" y="0" width="80" height="40" rx="5"/><text class="val" x="170" y="26" text-anchor="middle">2</text>
+    <rect class="cell"   x="260" y="0" width="80" height="40" rx="5"/><text class="val" x="300" y="26" text-anchor="middle">3</text>
+    <path class="s-info" d="M84 20 L122 20"/><path class="f-info" d="M128 20 l-8,-4 l0,9 z"/>
+    <path class="s-info" d="M214 20 L252 20"/><path class="f-info" d="M258 20 l-8,-4 l0,9 z"/>
+    <path class="s-info" d="M344 20 L378 20"/><text class="tiny" x="384" y="24">None</text>
+  </g>
+  <text class="tiny t-bad"  x="130" y="88">prev = None</text>
+  <text class="tiny t-acc"  x="230" y="88">curr</text>
+
+  <!-- frame 1 -->
+  <text class="cap" x="0" y="142">after 1</text>
+  <g transform="translate(90,122)">
+    <rect class="sv-good" x="0"   y="0" width="80" height="40" rx="5"/><text class="val" x="40"  y="26" text-anchor="middle">1</text>
+    <rect class="sv-acc"  x="130" y="0" width="80" height="40" rx="5"/><text class="val" x="170" y="26" text-anchor="middle">2</text>
+    <rect class="cell"    x="260" y="0" width="80" height="40" rx="5"/><text class="val" x="300" y="26" text-anchor="middle">3</text>
+    <path class="s-good" d="M-6 20 L-40 20"/><text class="tiny" x="-78" y="24">None ←</text>
+    <path class="s-info" d="M214 20 L252 20"/><path class="f-info" d="M258 20 l-8,-4 l0,9 z"/>
+    <path class="s-info" d="M344 20 L378 20"/><text class="tiny" x="384" y="24">None</text>
+  </g>
+  <text class="tiny t-good" x="130" y="178">prev</text>
+  <text class="tiny t-acc"  x="260" y="178">curr</text>
+
+  <!-- frame 2 -->
+  <text class="cap" x="0" y="232">after 2</text>
+  <g transform="translate(90,212)">
+    <rect class="sv-good" x="0"   y="0" width="80" height="40" rx="5"/><text class="val" x="40"  y="26" text-anchor="middle">1</text>
+    <rect class="sv-good" x="130" y="0" width="80" height="40" rx="5"/><text class="val" x="170" y="26" text-anchor="middle">2</text>
+    <rect class="sv-acc"  x="260" y="0" width="80" height="40" rx="5"/><text class="val" x="300" y="26" text-anchor="middle">3</text>
+    <path class="s-good" d="M-6 20 L-40 20"/><text class="tiny" x="-78" y="24">None ←</text>
+    <path class="s-good" d="M124 20 L90 20"/><path class="f-good" d="M84 20 l8,-4 l0,9 z"/>
+    <path class="s-info" d="M344 20 L378 20"/><text class="tiny" x="384" y="24">None</text>
+  </g>
+  <text class="tiny t-good" x="260" y="268">prev</text>
+  <text class="tiny t-acc"  x="390" y="268">curr</text>
+
+  <!-- frame 3 -->
+  <text class="cap" x="0" y="322">done</text>
+  <g transform="translate(90,302)">
+    <rect class="sv-good" x="0"   y="0" width="80" height="40" rx="5"/><text class="val" x="40"  y="26" text-anchor="middle">1</text>
+    <rect class="sv-good" x="130" y="0" width="80" height="40" rx="5"/><text class="val" x="170" y="26" text-anchor="middle">2</text>
+    <rect class="sv-good" x="260" y="0" width="80" height="40" rx="5"/><text class="val" x="300" y="26" text-anchor="middle">3</text>
+    <path class="s-good" d="M-6 20 L-40 20"/><text class="tiny" x="-78" y="24">None ←</text>
+    <path class="s-good" d="M124 20 L90 20"/><path class="f-good" d="M84 20 l8,-4 l0,9 z"/>
+    <path class="s-good" d="M254 20 L220 20"/><path class="f-good" d="M214 20 l8,-4 l0,9 z"/>
+  </g>
+  <text class="tiny t-good" x="390" y="358">prev = new head</text>
+  <text class="tiny t-acc"  x="490" y="358">curr = None → loop ends</text>
+
+  <rect class="panel" x="0" y="376" width="740" height="52" rx="10"/>
+  <text class="cap" x="16" y="400"><tspan class="capb">Return <tspan class="sv-mono">prev</tspan>, not <tspan class="sv-mono">head</tspan>.</tspan> When the loop exits, <tspan class="sv-mono">curr</tspan> is None and <tspan class="sv-mono">prev</tspan> sits on the last node processed —</text>
+  <text class="cap" x="16" y="420">which is the original tail, i.e. the new head. Returning <tspan class="sv-mono">head</tspan> gives you a one-element list.</text>
+</svg>
+<figcaption><b>The reversal dance, traced.</b> Watch <code>prev</code> trail one step behind <code>curr</code> the whole way. The saved <code>nxt</code> exists purely because line 2 destroys the forward link that line 4 needs.</figcaption>
+</figure>
+
+<pre><code>def reverse(head):
+    prev = None
+    curr = head
+    while curr:
+        nxt = curr.next
+        curr.next = prev
+        prev = curr
+        curr = nxt
+    return prev            # the new head
+</code></pre>
+
+<h2>Maneuver 2 &mdash; the dummy head</h2>
+
+<p>When the head itself might change or get removed, allocate a fake node in front so you never special-case &ldquo;what if it&rsquo;s the first node.&rdquo; Return <code>dummy.next</code> at the end.</p>
+
+<figure>
+<svg viewBox="0 0 740 240" role="img" aria-label="A dummy node in front of the list removes the head special case">
+  <text class="capb t-bad" x="0" y="16">Without a dummy — two code paths</text>
+  <g>
+    <rect class="cell" x="0"   y="34" width="86" height="40" rx="5"/><text class="val" x="43"  y="60" text-anchor="middle">1</text>
+    <rect class="cell" x="120" y="34" width="86" height="40" rx="5"/><text class="val" x="163" y="60" text-anchor="middle">2</text>
+    <rect class="cell" x="240" y="34" width="86" height="40" rx="5"/><text class="val" x="283" y="60" text-anchor="middle">3</text>
+    <path class="s-info" d="M90 54 L112 54"/><path class="s-info" d="M210 54 L232 54"/>
+  </g>
+  <text class="cap t-bad" x="350" y="48">removing node 2? &#8594; <tspan class="sv-mono">prev.next = curr.next</tspan></text>
+  <text class="cap t-bad" x="350" y="70">removing node 1? &#8594; <tspan class="sv-mono">head = head.next</tspan>  ← different code</text>
+
+  <line class="sv-line dash" x1="0" y1="98" x2="740" y2="98"/>
+
+  <text class="capb t-good" x="0" y="128">With a dummy — one code path</text>
+  <g>
+    <rect class="sv-good" x="0"   y="146" width="86" height="40" rx="5"/><text class="val" x="43"  y="172" text-anchor="middle">•</text>
+    <rect class="cell" x="120" y="146" width="86" height="40" rx="5"/><text class="val" x="163" y="172" text-anchor="middle">1</text>
+    <rect class="cell" x="240" y="146" width="86" height="40" rx="5"/><text class="val" x="283" y="172" text-anchor="middle">2</text>
+    <rect class="cell" x="360" y="146" width="86" height="40" rx="5"/><text class="val" x="403" y="172" text-anchor="middle">3</text>
+    <path class="s-good" d="M90 166 L112 166"/><path class="s-info" d="M210 166 L232 166"/><path class="s-info" d="M330 166 L352 166"/>
+  </g>
+  <text class="tiny t-good" x="43" y="206" text-anchor="middle">dummy</text>
+  <text class="cap t-good" x="466" y="166">now node 1 has a predecessor too —</text>
+  <text class="cap t-good" x="466" y="186"><tspan class="sv-mono">prev.next = curr.next</tspan> works everywhere</text>
+  <text class="cap" x="0" y="232">Return <tspan class="sv-mono">dummy.next</tspan>, never <tspan class="sv-mono">head</tspan> — the real head may well have been removed or replaced.</text>
+</svg>
+<figcaption><b>One fake node, one code path.</b> The cost is a single allocation; the benefit is deleting an entire branch of edge-case handling. Use it in Merge Two Sorted Lists, Remove Nth From End, Add Two Numbers, and Reverse Nodes in K-Group.</figcaption>
+</figure>
+
+<pre><code>dummy = ListNode(0, head)
+# ... build off `dummy` ...
+return dummy.next
+</code></pre>
+
+<h2>Maneuver 3 &mdash; fast &amp; slow pointers (Floyd&rsquo;s)</h2>
+
+<p>Advance one pointer two steps for every one step of the other. Fast reaches the end when slow is at the middle; and if there&rsquo;s a cycle, fast eventually laps slow and they meet. This one trick powers cycle detection, finding the middle, <em>and</em> the duplicate-number problem.</p>
+
+<figure>
+<svg viewBox="0 0 740 336" role="img" aria-label="Floyd's tortoise and hare detecting a cycle in a linked list">
+  <text class="capb" x="0" y="16">Why the hare must catch the tortoise</text>
+
+  <!-- straight tail -->
+  <g>
+    <rect class="cell" x="0"   y="120" width="66" height="38" rx="5"/><text class="val" x="33"  y="145" text-anchor="middle">3</text>
+    <rect class="cell" x="86"  y="120" width="66" height="38" rx="5"/><text class="val" x="119" y="145" text-anchor="middle">2</text>
+    <path class="s-info" d="M70 139 L80 139"/>
+    <path class="s-info" d="M156 139 L188 139"/>
+  </g>
+  <!-- cycle -->
+  <g>
+    <rect class="sv-acc" x="196" y="120" width="66" height="38" rx="5"/><text class="val" x="229" y="145" text-anchor="middle">0</text>
+    <rect class="cell"   x="300" y="60"  width="66" height="38" rx="5"/><text class="val" x="333" y="85"  text-anchor="middle">-4</text>
+    <rect class="cell"   x="380" y="120" width="66" height="38" rx="5"/><text class="val" x="413" y="145" text-anchor="middle">7</text>
+    <rect class="cell"   x="300" y="184" width="66" height="38" rx="5"/><text class="val" x="333" y="209" text-anchor="middle">5</text>
+    <path class="s-acc" d="M266 132 L296 96"/><path class="f-acc" d="M300 92 l-2,10 l9,-4 z"/>
+    <path class="s-acc" d="M370 92 L392 116"/><path class="f-acc" d="M396 120 l-1,-10 l-9,5 z"/>
+    <path class="s-acc" d="M392 162 L370 186"/><path class="f-acc" d="M366 190 l9,-4 l-1,-10 z"/>
+    <path class="s-acc" d="M296 200 L266 168"/><path class="f-acc" d="M262 164 l1,10 l9,-5 z"/>
+  </g>
+
+  <rect class="panel" x="470" y="40" width="270" height="200" rx="10"/>
+  <text class="capb" x="486" y="66">The argument</text>
+  <text class="cap" x="486" y="92">Once both pointers are inside the loop,</text>
+  <text class="cap" x="486" y="112">the gap between them <tspan class="capb">shrinks by exactly</tspan></text>
+  <text class="cap" x="486" y="132"><tspan class="capb">one node per step</tspan> (fast gains 2, slow</text>
+  <text class="cap" x="486" y="152">gains 1).</text>
+  <text class="cap" x="486" y="180">A gap that decreases by 1 each step and</text>
+  <text class="cap" x="486" y="200">can never skip past 0 must eventually</text>
+  <text class="cap t-good" x="486" y="220">hit 0. They meet. Guaranteed.</text>
+
+  <text class="cap" x="0" y="262"><tspan class="capb">Finding the middle:</tspan> no cycle, so <tspan class="sv-mono">fast</tspan> runs out first. When <tspan class="sv-mono">fast</tspan> or <tspan class="sv-mono">fast.next</tspan> is None, <tspan class="sv-mono">slow</tspan> is at the middle</text>
+  <text class="cap" x="0" y="284">(for even lengths, the <tspan class="capb">second</tspan> of the two middles — change the loop guard if you want the first).</text>
+  <text class="cap" x="0" y="306"><tspan class="capb">Finding the cycle&#8217;s entrance:</tspan> after they meet, reset one pointer to the head and</text>
+  <text class="cap" x="0" y="328">advance both one step at a time; they meet at the entry node.</text>
+</svg>
+<figcaption><b>Tortoise and hare.</b> Two uses, one mechanism. The cycle-entrance step (phase 2) is what Find the Duplicate Number needs, and it&rsquo;s worth memorising because deriving it under pressure is unpleasant.</figcaption>
+</figure>
+
+<pre><code>slow = fast = head
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+    if slow is fast:
+        break            # cycle detected
+# no cycle: slow is now at the middle
+</code></pre>
+
+<div class="callout note">
+  <span class="ct">Find the Duplicate Number &mdash; the sneaky one</span>
+  <p>Given <code>n+1</code> integers in the range <code>1…n</code>, treat the array as a linked list where <code>i → nums[i]</code>. Because some value repeats, two indices point at the same successor &mdash; which is exactly a cycle, and the duplicate is the cycle&rsquo;s <em>entrance</em>. Run Floyd&rsquo;s, then phase 2. O(n) time, O(1) space, input unmodified.</p>
+</div>
+
+<h2>Maneuver 4 &mdash; the two-pointer gap</h2>
+
+<p>Advance one pointer <code>n</code> steps ahead, then move both together. When the leader hits the end, the follower sits exactly <code>n</code> from the end &mdash; one pass, no length calculation.</p>
+
+<figure>
+<svg viewBox="0 0 740 250" role="img" aria-label="A fixed gap between two pointers locates the nth node from the end in one pass">
+  <text class="capb" x="0" y="16">Remove the 2nd node from the end of 1 → 2 → 3 → 4 → 5</text>
+
+  <text class="cap" x="0" y="52">step 1 — advance <tspan class="sv-mono">fast</tspan> n = 2 steps</text>
+  <g transform="translate(0,64)">
+    <rect class="sv-good" x="0"   y="0" width="86" height="38" rx="5"/><text class="val" x="43"  y="25" text-anchor="middle">1</text>
+    <rect class="cell"    x="116" y="0" width="86" height="38" rx="5"/><text class="val" x="159" y="25" text-anchor="middle">2</text>
+    <rect class="sv-acc"  x="232" y="0" width="86" height="38" rx="5"/><text class="val" x="275" y="25" text-anchor="middle">3</text>
+    <rect class="cell"    x="348" y="0" width="86" height="38" rx="5"/><text class="val" x="391" y="25" text-anchor="middle">4</text>
+    <rect class="cell"    x="464" y="0" width="86" height="38" rx="5"/><text class="val" x="507" y="25" text-anchor="middle">5</text>
+    <text class="tiny t-good" x="43"  y="58" text-anchor="middle">slow</text>
+    <text class="tiny t-acc"  x="275" y="58" text-anchor="middle">fast</text>
+    <path class="s-acc" d="M43 -12 L266 -12"/>
+    <text class="tiny t-acc" x="154" y="-18" text-anchor="middle">gap = 2</text>
+  </g>
+
+  <text class="cap" x="0" y="158">step 2 — move both until <tspan class="sv-mono">fast</tspan> falls off the end</text>
+  <g transform="translate(0,170)">
+    <rect class="cell"    x="0"   y="0" width="86" height="38" rx="5"/><text class="val" x="43"  y="25" text-anchor="middle">1</text>
+    <rect class="cell"    x="116" y="0" width="86" height="38" rx="5"/><text class="val" x="159" y="25" text-anchor="middle">2</text>
+    <rect class="sv-good" x="232" y="0" width="86" height="38" rx="5"/><text class="val" x="275" y="25" text-anchor="middle">3</text>
+    <rect class="sv-bad"  x="348" y="0" width="86" height="38" rx="5"/><text class="val" x="391" y="25" text-anchor="middle">4</text>
+    <rect class="cell"    x="464" y="0" width="86" height="38" rx="5"/><text class="val" x="507" y="25" text-anchor="middle">5</text>
+    <text class="tiny t-good" x="275" y="58" text-anchor="middle">slow — the node BEFORE the target</text>
+    <text class="tiny t-bad"  x="391" y="58" text-anchor="middle">delete this</text>
+    <text class="tiny" x="600" y="25">fast = None</text>
+  </g>
+  <text class="cap" x="0" y="244">Start <tspan class="sv-mono">slow</tspan> at a <tspan class="capb">dummy</tspan> so it lands on the predecessor even when the target is the head itself.</text>
+</svg>
+<figcaption><b>The gap trick.</b> Two pointers separated by a constant distance turn &ldquo;position relative to the end&rdquo; into &ldquo;position relative to a pointer that already knows where the end is.&rdquo; Combining it with a dummy head is what makes the one-pass version clean.</figcaption>
+</figure>
+
+<h2>Composing maneuvers: Reorder List</h2>
+
+<p>Reorder List looks intimidating and is actually three primitives back to back. Decomposing it is the whole exercise.</p>
+
+<figure>
+<svg viewBox="0 0 740 340" role="img" aria-label="Reorder list decomposed into find middle, reverse second half, and merge alternately">
+  <text class="capb" x="0" y="16">1 → 2 → 3 → 4 → 5   ⟶   1 → 5 → 2 → 4 → 3</text>
+
+  <text class="cap t-info" x="0" y="52">① find the middle (fast / slow)</text>
+  <g transform="translate(0,62)">
+    <rect class="cell" x="0"   y="0" width="76" height="34" rx="5"/><text class="val" x="38"  y="23" text-anchor="middle">1</text>
+    <rect class="cell" x="90"  y="0" width="76" height="34" rx="5"/><text class="val" x="128" y="23" text-anchor="middle">2</text>
+    <rect class="sv-info" x="180" y="0" width="76" height="34" rx="5"/><text class="val" x="218" y="23" text-anchor="middle">3</text>
+    <rect class="cell" x="270" y="0" width="76" height="34" rx="5"/><text class="val" x="308" y="23" text-anchor="middle">4</text>
+    <rect class="cell" x="360" y="0" width="76" height="34" rx="5"/><text class="val" x="398" y="23" text-anchor="middle">5</text>
+    <text class="tiny t-info" x="218" y="52" text-anchor="middle">slow — split here</text>
+  </g>
+
+  <text class="cap t-acc" x="0" y="150">② reverse the second half, and cut the first half&#8217;s tail</text>
+  <g transform="translate(0,160)">
+    <rect class="cell" x="0"   y="0" width="76" height="34" rx="5"/><text class="val" x="38"  y="23" text-anchor="middle">1</text>
+    <rect class="cell" x="90"  y="0" width="76" height="34" rx="5"/><text class="val" x="128" y="23" text-anchor="middle">2</text>
+    <rect class="cell" x="180" y="0" width="76" height="34" rx="5"/><text class="val" x="218" y="23" text-anchor="middle">3</text>
+    <text class="tiny" x="280" y="23">→ None</text>
+    <rect class="sv-acc" x="380" y="0" width="76" height="34" rx="5"/><text class="val" x="418" y="23" text-anchor="middle">5</text>
+    <rect class="sv-acc" x="470" y="0" width="76" height="34" rx="5"/><text class="val" x="508" y="23" text-anchor="middle">4</text>
+    <text class="tiny t-acc" x="418" y="52" text-anchor="middle">second half, reversed</text>
+  </g>
+
+  <text class="cap t-good" x="0" y="250">③ merge the two lists alternately</text>
+  <g transform="translate(0,260)">
+    <rect class="cell" x="0"   y="0" width="70" height="34" rx="5"/><text class="val" x="35"  y="23" text-anchor="middle">1</text>
+    <rect class="sv-acc" x="82"  y="0" width="70" height="34" rx="5"/><text class="val" x="117" y="23" text-anchor="middle">5</text>
+    <rect class="cell" x="164" y="0" width="70" height="34" rx="5"/><text class="val" x="199" y="23" text-anchor="middle">2</text>
+    <rect class="sv-acc" x="246" y="0" width="70" height="34" rx="5"/><text class="val" x="281" y="23" text-anchor="middle">4</text>
+    <rect class="cell" x="328" y="0" width="70" height="34" rx="5"/><text class="val" x="363" y="23" text-anchor="middle">3</text>
+    <text class="tiny t-good" x="199" y="52" text-anchor="middle">take one from each, alternating, until one runs out</text>
+  </g>
+  <text class="tiny" x="0" y="336">The cut in step ② is essential: leaving <tspan class="sv-mono">3.next</tspan> pointing at 4 creates a cycle and the merge loop never ends.</text>
+</svg>
+<figcaption><b>Reorder List = middle + reverse + merge.</b> When a linked-list problem looks hard, try to name it as a sequence of the four maneuvers. If you can decompose it, it stops being scary.</figcaption>
+</figure>
+
+<h2>Pattern groups mapped to the problems</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Group</th><th>The move</th><th>Problems</th></tr></thead>
+<tbody>
+<tr><td><b>1. Pure pointer surgery</b></td><td>The foundational maneuvers: the reversal dance, and weaving two lists with a dummy head. Everything else builds on these.</td><td>Reverse Linked List <span class="tag easy">easy</span>, Merge Two Sorted Lists <span class="tag easy">easy</span></td></tr>
+<tr><td><b>2. Fast &amp; slow pointer</b></td><td>Floyd&rsquo;s tortoise-and-hare: detect a cycle in a list, or treat an array as a linked list to find its repeated value in O(1) space.</td><td>Linked List Cycle <span class="tag easy">easy</span>, Find the Duplicate Number <span class="tag med">med</span></td></tr>
+<tr><td><b>3. Multi-maneuver combos</b></td><td>Chain the primitives. Reorder = middle + reverse + merge; Remove Nth = gap + dummy.</td><td>Reorder List <span class="tag med">med</span>, Remove Nth Node From End <span class="tag med">med</span></td></tr>
+<tr><td><b>4. Rebuild while traversing</b></td><td>Walk the input(s) and construct a brand-new list as you go. Add Two Numbers carries digits; Copy with Random Pointer needs an old→new hashmap (or the interleaving trick).</td><td>Add Two Numbers <span class="tag med">med</span>, Copy List with Random Pointer <span class="tag med">med</span></td></tr>
+<tr><td><b>5. Hard / composite</b></td><td>The boss fights. Merge K uses a heap or divide-and-conquer; K-Group applies reversal to fixed windows; LRU combines a hashmap with a doubly linked list.</td><td>Merge K Sorted Lists <span class="tag hard">hard</span>, Reverse Nodes in K-Group <span class="tag hard">hard</span>, LRU Cache <span class="tag med">med</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Copy List with Random Pointer &mdash; the two-pass map</h2>
+
+<p>The difficulty is that a <code>random</code> pointer may target a node you haven&rsquo;t created yet. Two passes solve it: create every node first, then wire the pointers once every target exists.</p>
+
+<figure>
+<svg viewBox="0 0 740 260" role="img" aria-label="Copying a list with random pointers using an old to new hashmap">
+  <text class="capb" x="0" y="16">Pass 1 — clone the nodes only, recording old → new</text>
+  <g>
+    <rect class="cell" x="0"   y="34" width="76" height="36" rx="5"/><text class="val" x="38"  y="58" text-anchor="middle">7</text>
+    <rect class="cell" x="96"  y="34" width="76" height="36" rx="5"/><text class="val" x="134" y="58" text-anchor="middle">13</text>
+    <rect class="cell" x="192" y="34" width="76" height="36" rx="5"/><text class="val" x="230" y="58" text-anchor="middle">11</text>
+    <text class="tiny" x="134" y="88" text-anchor="middle">original</text>
+  </g>
+  <path class="s-acc" d="M300 52 L344 52"/><path class="f-acc" d="M352 52 l-9,-5 l0,10 z"/>
+  <g>
+    <rect class="sv-acc" x="370" y="34" width="76" height="36" rx="5"/><text class="val" x="408" y="58" text-anchor="middle">7'</text>
+    <rect class="sv-acc" x="466" y="34" width="76" height="36" rx="5"/><text class="val" x="504" y="58" text-anchor="middle">13'</text>
+    <rect class="sv-acc" x="562" y="34" width="76" height="36" rx="5"/><text class="val" x="600" y="58" text-anchor="middle">11'</text>
+    <text class="tiny t-acc" x="504" y="88" text-anchor="middle">copies, no links yet</text>
+  </g>
+
+  <rect class="sv-info" x="0" y="106" width="740" height="44" rx="8"/>
+  <text class="val" x="16" y="133">mapping = { 7: 7', 13: 13', 11: 11' }   — an ordinary dict keyed by node object</text>
+
+  <text class="capb" x="0" y="182">Pass 2 — wire both pointers by lookup</text>
+  <text class="cap sv-mono" x="0" y="208">mapping[old].next   = mapping.get(old.next)</text>
+  <text class="cap sv-mono" x="0" y="230">mapping[old].random = mapping.get(old.random)</text>
+  <text class="tiny" x="0" y="254"><tspan class="sv-mono">.get</tspan>, not <tspan class="sv-mono">[]</tspan> — a None target must map to None, and None is not a key.</text>
+</svg>
+<figcaption><b>Old → new mapping.</b> Nodes are hashable by identity in Python, so they work directly as dict keys. The O(1)-space alternative &mdash; interleaving each copy immediately after its original, then unweaving &mdash; is a nice follow-up to mention if asked to drop the hashmap.</figcaption>
+</figure>
+
+<h2>LRU Cache &mdash; hashmap plus doubly linked list</h2>
+
+<p>A mini design problem, and a genuinely good one: it exists to make you notice that neither structure alone can do the job.</p>
+
+<figure>
+<svg viewBox="0 0 740 300" role="img" aria-label="LRU cache combining a hashmap of keys to nodes with a doubly linked list ordered by recency">
+  <text class="capb" x="0" y="16">Hash map: O(1) lookup — but no notion of order</text>
+  <g>
+    <rect class="sv-info" x="0" y="30" width="250" height="94" rx="8"/>
+    <text class="val" x="16" y="56">"a" → node</text>
+    <text class="val" x="16" y="82">"b" → node</text>
+    <text class="val" x="16" y="108">"c" → node</text>
+  </g>
+
+  <text class="capb" x="300" y="16">Doubly linked list: O(1) reorder — but no lookup</text>
+  <g>
+    <rect class="cell" x="300" y="46" width="72" height="36" rx="5"/><text class="val" x="336" y="70" text-anchor="middle">LRU</text>
+    <rect class="cell" x="400" y="46" width="72" height="36" rx="5"/><text class="val" x="436" y="70" text-anchor="middle">c</text>
+    <rect class="cell" x="500" y="46" width="72" height="36" rx="5"/><text class="val" x="536" y="70" text-anchor="middle">a</text>
+    <rect class="sv-acc" x="600" y="46" width="72" height="36" rx="5"/><text class="val" x="636" y="70" text-anchor="middle">MRU</text>
+    <path class="s-info" d="M376 60 L394 60"/><path class="s-info" d="M476 60 L494 60"/><path class="s-info" d="M576 60 L594 60"/>
+    <path class="s-info" d="M394 74 L376 74"/><path class="s-info" d="M494 74 L476 74"/><path class="s-info" d="M594 74 L576 74"/>
+  </g>
+  <text class="tiny" x="336" y="102" text-anchor="middle">evict from this end</text>
+  <text class="tiny t-acc" x="636" y="102" text-anchor="middle">insert / promote here</text>
+
+  <path class="s-good" d="M126 130 L126 150 L436 150 L436 92"/>
+  <path class="f-good" d="M436 86 l-5,9 l10,0 z"/>
+  <text class="cap t-good" x="230" y="170">the map&#8217;s values <tspan class="capb">are</tspan> list nodes — that&#8217;s the whole design</text>
+
+  <rect class="panel" x="0" y="188" width="740" height="108" rx="10"/>
+  <text class="capb" x="16" y="212">Why both are required</text>
+  <text class="cap" x="16" y="238">A dict alone can&#8217;t tell you which key was used least recently. A list alone needs O(n) to <tspan class="capb">find</tspan> a key.</text>
+  <text class="cap" x="16" y="260">Together: the dict finds the node in O(1), and because the node carries <tspan class="capb">both</tspan> its neighbours,</text>
+  <text class="cap" x="16" y="282">unlinking and re-inserting it at the MRU end is also O(1). Use <tspan class="capb">sentinel head/tail nodes</tspan> so no unlink needs a null check.</text>
+</svg>
+<figcaption><b>LRU Cache.</b> The <em>doubly</em> linked list matters: to unlink a node in O(1) you must reach its predecessor, which a singly linked list can&rsquo;t give you. Sentinels at both ends eliminate every edge case in <code>_remove</code> and <code>_insert</code>.</figcaption>
+</figure>
+
+<h2>Suggested order to attack them</h2>
+
+<ol class="problems">
+<li><b>Reverse Linked List</b><span class="why">Drill the four-line dance until it&rsquo;s automatic. Then write it recursively too.</span></li>
+<li><b>Merge Two Sorted Lists</b><span class="why">Learn the dummy head. Attach the remaining tail rather than looping to the end.</span></li>
+<li><b>Linked List Cycle</b><span class="why">Learn fast &amp; slow, and be able to argue why they must meet.</span></li>
+<li><b>Reorder List</b><span class="why">First combo: middle + reverse + merge. Remember to cut the first half&rsquo;s tail.</span></li>
+<li><b>Remove Nth Node From End of List</b><span class="why">Two-pointer gap + dummy, in a single pass.</span></li>
+<li><b>Copy List with Random Pointer</b><span class="why">Hashmap old→new in two passes; mention the O(1)-space interleaving follow-up.</span></li>
+<li><b>Add Two Numbers</b><span class="why">Build-as-you-go with carry. Don&rsquo;t forget the final carry after both lists end.</span></li>
+<li><b>Find the Duplicate Number</b><span class="why">Floyd&rsquo;s applied to an array — the sneaky one. Phase 2 finds the cycle entrance.</span></li>
+<li><b>Merge K Sorted Lists</b><span class="why">Heap of (val, i, node), or divide-and-conquer over pairwise merges. Both are O(N log k).</span></li>
+<li><b>Reverse Nodes in K-Group</b><span class="why">The reversal dance on windows, with careful reconnection at each boundary.</span></li>
+<li class="boss"><b>LRU Cache</b><span class="why">Hashmap + doubly linked list. Use sentinel head/tail nodes and factor out <code>_remove</code> / <code>_insert</code>.</span></li>
+</ol>
+
+<p>By the time you reach #9&ndash;11, the reversal dance and the dummy-head reflex from the first two problems will make the boss fights feel like assembly rather than invention.</p>
+
+<h2>Complexity cheat sheet</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>Problem</th><th>Time</th><th>Space</th><th>Maneuvers used</th></tr></thead>
+<tbody>
+<tr><td>Reverse Linked List</td><td>O(n)</td><td>O(1)</td><td>reversal dance</td></tr>
+<tr><td>Merge Two Sorted Lists</td><td>O(n + m)</td><td>O(1)</td><td>dummy head</td></tr>
+<tr><td>Linked List Cycle</td><td>O(n)</td><td>O(1)</td><td>fast / slow</td></tr>
+<tr><td>Reorder List</td><td>O(n)</td><td>O(1)</td><td>fast/slow + reverse + merge</td></tr>
+<tr><td>Remove Nth From End</td><td>O(n)</td><td>O(1)</td><td>gap + dummy</td></tr>
+<tr><td>Copy List with Random Pointer</td><td>O(n)</td><td>O(n) → O(1)</td><td>hashmap (or interleave)</td></tr>
+<tr><td>Add Two Numbers</td><td>O(max(n,m))</td><td>O(1) extra</td><td>dummy + carry</td></tr>
+<tr><td>Find the Duplicate Number</td><td>O(n)</td><td>O(1)</td><td>Floyd&rsquo;s, both phases</td></tr>
+<tr><td>Merge K Sorted Lists</td><td>O(N log k)</td><td>O(k)</td><td>heap, or D&amp;C merges</td></tr>
+<tr><td>Reverse Nodes in K-Group</td><td>O(n)</td><td>O(1)</td><td>reversal on windows</td></tr>
+<tr><td>LRU Cache</td><td>O(1) per op</td><td>O(capacity)</td><td>hashmap + doubly linked list</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>Traps</h2>
+
+<div class="callout trap">
+  <span class="ct">Trap 1 — returning <code>head</code> after reversing</span>
+  <p>After the loop, <code>head</code> is the <em>tail</em> of the reversed list. Return <code>prev</code>.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 2 — the missing null guard in fast/slow</span>
+  <p><code>while fast and fast.next</code> &mdash; both conditions, in that order. <code>fast.next.next</code> explodes otherwise, and Python&rsquo;s short-circuit ordering is what saves you.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 3 — forgetting to cut the tail</span>
+  <p>In Reorder List, if the first half still points into the second, the merged list contains a cycle and the loop never terminates.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 4 — dropping the final carry</span>
+  <p>In Add Two Numbers, <code>[9] + [1]</code> produces <code>[0, 1]</code>. Loop <code>while l1 or l2 or carry</code>, not just while the lists last.</p>
+</div>
+
+<div class="callout trap">
+  <span class="ct">Trap 5 — comparing nodes with <code>==</code></span>
+  <p>Use <code>is</code> for identity (<code>slow is fast</code>). <code>==</code> works by default too, but says the wrong thing and breaks if <code>__eq__</code> is ever defined.</p>
+</div>
+
+<h2>One practical tip</h2>
+
+<div class="callout key">
+  <span class="ct">When you&rsquo;re stuck, use paper</span>
+  <p>Draw the list with 4&ndash;5 nodes and step a real pen through your pointer moves, one line at a time. Linked list bugs are almost never logic errors &mdash; they&rsquo;re a pointer you overwrote before you were done with it, and you&rsquo;ll see it instantly on paper long before a debugger would show you.</p>
+</div>
+
+<div class="pager"></div>
+</article>
+</main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>
